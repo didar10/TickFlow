@@ -69,13 +69,27 @@ final class TaskItem {
         return dueDate
     }
 
+    var completedSubtaskCount: Int {
+        subtasks.filter(\.isCompleted).count
+    }
+
     func setCompleted(_ value: Bool) {
         isCompleted = value
         completedAt = value ? .now : nil
-        if value {
-            NotificationScheduler.cancel(taskID: id)
+    }
+
+    /// Переносит на сегодня, сохраняя время, если оно указано.
+    func moveToToday(calendar: Calendar = .current) {
+        if hasTime, let dueDate {
+            let components = calendar.dateComponents([.hour, .minute], from: dueDate)
+            self.dueDate = calendar.date(
+                bySettingHour: components.hour ?? 9,
+                minute: components.minute ?? 0,
+                second: 0,
+                of: .now
+            )
         } else {
-            NotificationScheduler.reschedule(id: id, title: title, fireDate: reminderDate)
+            dueDate = calendar.startOfDay(for: .now)
         }
     }
 }

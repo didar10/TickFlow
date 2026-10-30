@@ -3,6 +3,8 @@ import SwiftUI
 /// Сетка месяца. Дни за пределами месяца приглушены, под числом — индикатор задач.
 struct MonthGrid: View {
     let month: Date
+    let days: [Date]
+    let weekdaySymbols: [String]
     @Binding var selectedDate: Date
     /// Количество незавершённых задач по дням (ключ — начало дня).
     let taskCounts: [Date: Int]
@@ -66,32 +68,5 @@ struct MonthGrid: View {
         if isToday { return .accentColor }
         if !inMonth { return .secondary.opacity(0.5) }
         return .primary
-    }
-
-    private var weekdaySymbols: [String] {
-        let symbols = calendar.shortStandaloneWeekdaySymbols
-        let shift = calendar.firstWeekday - 1
-        guard shift > 0, shift < symbols.count else { return symbols }
-        return Array(symbols[shift...] + symbols[..<shift])
-    }
-
-    private var days: [Date] {
-        guard
-            let monthInterval = calendar.dateInterval(of: .month, for: month),
-            let firstWeek = calendar.dateInterval(of: .weekOfMonth, for: monthInterval.start),
-            let lastWeek = calendar.dateInterval(
-                of: .weekOfMonth,
-                for: monthInterval.end.addingTimeInterval(-1)
-            )
-        else { return [] }
-
-        var result: [Date] = []
-        var current = firstWeek.start
-        while current < lastWeek.end {
-            result.append(current)
-            guard let next = calendar.date(byAdding: .day, value: 1, to: current) else { break }
-            current = next
-        }
-        return result
     }
 }

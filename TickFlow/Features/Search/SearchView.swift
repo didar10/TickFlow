@@ -1,27 +1,24 @@
-import SwiftData
 import SwiftUI
 
 struct SearchView: View {
-    @Environment(\.modelContext) private var context
+    @Environment(AppDependencies.self) private var dependencies
+    @State private var viewModel: SearchViewModel
 
-    // Bool не Comparable, поэтому SortDescriptor по isCompleted не создать —
-    // сортируем по дате в запросе, а незавершённые поднимаем наверх в `results`.
-    @Query(sort: \TaskItem.createdAt, order: .reverse)
-    private var allTasks: [TaskItem]
-
-    @State private var query = ""
-    @State private var editingTask: TaskItem?
+    init(viewModel: SearchViewModel) {
+        _viewModel = State(initialValue: viewModel)
+    }
 
     var body: some View {
+        @Bindable var viewModel = viewModel
+
         NavigationStack {
             List {
-                ForEach(results) { task in
+                ForEach(viewModel.results) { task in
                     TaskRowView(task: task, showsListName: true) {
-                        task.setCompleted(!task.isCompleted)
-                        try? context.save()
+                        viewModel.toggle(task)
                     }
                     .contentShape(Rectangle())
-                    .onTapGesture { editingTask = task }
+                    .onTapGesture { viewModel.editingTask = task }
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(AppColors.surface)
                 }
@@ -30,32 +27,27 @@ struct SearchView: View {
             .screenBackground()
             .navigationTitle("Поиск")
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $query, prompt: "Название, заметка или список")
+            .searchable(text: $viewModel.query, prompt: "Название, заметка или список")
             .overlay {
-                if query.isEmpty {
+                if !viewModel.hasQuery {
                     ContentUnavailableView(
                         "Найти задачу",
                         systemImage: "magnifyingglass",
                         description: Text("Поиск идёт по названию, заметкам и названию списка.")
                     )
-                } else if results.isEmpty {
-                    ContentUnavailableView.search(text: query)
+                } else if viewModel.results.isEmpty {
+                    ContentUnavailableView.search(text: viewModel.query)
                 }
             }
-            .sheet(item: $editingTask) { task in
-                TaskEditorView(task: task, defaultList: task.list, defaultDueDate: task.dueDate)
+            .sheet(item: $viewModel.editingTask) { task in
+                TaskEditorView(
+                    viewModel: dependencies.makeTaskEditorViewModel(
+                        task: task,
+                        defaultList: task.list,
+                        defaultDueDate: task.dueDate
+                    )
+                )
             }
         }
-    }
-
-    private var results: [TaskItem] {
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return [] }
-        let matches = allTasks.filter { task in
-            task.title.localizedStandardContains(trimmed)
-                || task.notes.localizedStandardContains(trimmed)
-                || (task.list?.name.localizedStandardContains(trimmed) ?? false)
-        }
-        return matches.filter { !$0.isCompleted } + matches.filter(\.isCompleted)
     }
 }

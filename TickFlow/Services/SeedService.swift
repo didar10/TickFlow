@@ -1,13 +1,11 @@
 import Foundation
-import SwiftData
 
 /// Наполняет базу при первом запуске, чтобы приложение не открывалось пустым.
 enum SeedService {
 
-    static func seedIfNeeded(context: ModelContext) {
-        let descriptor = FetchDescriptor<TaskList>()
-        let existing = (try? context.fetchCount(descriptor)) ?? 0
-        guard existing == 0 else { return }
+    @MainActor
+    static func seedIfNeeded(tasks: any TaskRepository, lists: any TaskListRepository) {
+        guard lists.lists.isEmpty else { return }
 
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: .now)
@@ -16,7 +14,7 @@ enum SeedService {
         let work = TaskList(name: "Работа", colorHex: "#F97316", symbolName: "briefcase", sortOrder: 1)
         let personal = TaskList(name: "Личное", colorHex: "#22C55E", symbolName: "house", sortOrder: 2)
 
-        [inbox, work, personal].forEach(context.insert)
+        lists.insert([inbox, work, personal])
 
         let samples: [TaskItem] = [
             TaskItem(
@@ -45,7 +43,7 @@ enum SeedService {
             )
         ]
 
-        samples.forEach(context.insert)
+        var seeded = samples
 
         // Задачи со временем на завтра и послезавтра, чтобы таймлайн не был пустым.
         let timed: [(day: Int, hour: Int, minutes: Int, title: String, list: TaskList)] = [
@@ -62,7 +60,7 @@ enum SeedService {
                 let day = calendar.date(byAdding: .day, value: item.day, to: today),
                 let start = calendar.date(byAdding: .hour, value: item.hour, to: day)
             else { continue }
-            context.insert(
+            seeded.append(
                 TaskItem(
                     title: item.title,
                     dueDate: start,
@@ -73,6 +71,6 @@ enum SeedService {
                 )
             )
         }
-        try? context.save()
+        tasks.insert(seeded)
     }
 }

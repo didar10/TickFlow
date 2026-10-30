@@ -42,7 +42,7 @@ struct AgendaList: View {
     private func row(_ task: TaskItem, isLast: Bool) -> some View {
         HStack(alignment: .top, spacing: 10) {
             VStack(spacing: 6) {
-                Text(timeLabel(task))
+                Text(DateFormatting.agendaLabel(for: task))
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -90,10 +90,5 @@ struct AgendaList: View {
         }
         .padding(12)
         .background(AppColors.surface, in: .rect(cornerRadius: 12))
-    }
-
-    private func timeLabel(_ task: TaskItem) -> String {
-        guard task.hasTime, let due = task.dueDate else { return "Весь\nдень" }
-        return DateFormatting.time(for: due)
     }
 }

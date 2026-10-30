@@ -96,6 +96,12 @@ enum DateFormatting {
         return day + ", " + range
     }
 
+    /// Подпись времени в повестке дня.
+    static func agendaLabel(for task: TaskItem) -> String {
+        guard task.hasTime, let due = task.dueDate else { return "Весь\nдень" }
+        return time(for: due)
+    }
+
     static func monthTitle(for date: Date) -> String {
         let isCurrentYear = Calendar.current.isDate(date, equalTo: .now, toGranularity: .year)
         let style = isCurrentYear ? Date.FormatStyle().month(.wide) : Date.FormatStyle().month(.wide).year()

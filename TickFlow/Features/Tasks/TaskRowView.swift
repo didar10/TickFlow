@@ -50,8 +50,7 @@ struct TaskRowView: View {
             }
 
             if !task.subtasks.isEmpty {
-                let done = task.subtasks.filter(\.isCompleted).count
-                Text("\(done)/\(task.subtasks.count)")
+                Text("\(task.completedSubtaskCount)/\(task.subtasks.count)")
                     .foregroundStyle(.secondary)
             }
 

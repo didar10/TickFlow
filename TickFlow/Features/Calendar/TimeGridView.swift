@@ -2,27 +2,15 @@ import SwiftUI
 
 /// Таймлайн на один или несколько дней: задачи — цветные блоки на шкале часов.
 struct TimeGridView: View {
-    let days: [Date]
-    let tasks: [TaskItem]
-    let onSelect: (TaskItem) -> Void
-    let onToggle: (TaskItem) -> Void
-    let onDelete: (TaskItem) -> Void
-    /// Нажатие на свободное место: создать задачу на это время.
-    let onCreate: (Date) -> Void
-    /// Задачу перетащили на новое время начала.
-    let onMove: (TaskItem, Date) -> Void
-    /// Длительность изменили, потянув за нижний край блока.
-    let onResize: (TaskItem, Int) -> Void
-    /// Свайп по шапке: -1 назад, 1 вперёд.
-    let onShift: (Int) -> Void
+    let viewModel: CalendarViewModel
+
+    private var days: [Date] { viewModel.visibleDays }
 
     private let calendar = Calendar.current
     private let hourHeight: CGFloat = 64
     private let gutterWidth: CGFloat = 40
     private let allDayRowHeight: CGFloat = 26
     private let topPadding: CGFloat = 10
-    private let snapMinutes = 15
-    private let minimumDurationMinutes = 15
     private let rootSpace = "timeGridRoot"
     /// Блок задачи без времени появляется чуть выше пальца.
     private let allDayGrabOffset: CGFloat = 12
@@ -69,7 +57,9 @@ struct TimeGridView: View {
                 .gesture(
                     DragGesture(minimumDistance: 30).onEnded { value in
                         guard abs(value.translation.width) > abs(value.translation.height) else { return }
-                        onShift(value.translation.width < 0 ? 1 : -1)
+                        withAnimation(.snappy) {
+                            viewModel.shift(by: value.translation.width < 0 ? 1 : -1)
+                        }
                     }
                 )
 
@@ -168,7 +158,7 @@ struct TimeGridView: View {
 
     @ViewBuilder
     private var allDayStrip: some View {
-        let rows = days.map(allDayTasks(on:)).map(\.count).max() ?? 0
+        let rows = days.map(viewModel.allDayTasks(on:)).map(\.count).max() ?? 0
         if rows > 0 {
             ScrollView {
                 HStack(alignment: .top, spacing: 0) {
@@ -180,7 +170,7 @@ struct TimeGridView: View {
 
                     ForEach(days, id: \.self) { day in
                         VStack(spacing: 2) {
-                            ForEach(allDayTasks(on: day)) { task in
+                            ForEach(viewModel.allDayTasks(on: day)) { task in
                                 allDayChip(task)
                             }
                         }
@@ -206,7 +196,7 @@ struct TimeGridView: View {
             .opacity(task.isCompleted ? 0.5 : 1)
             .opacity(drag?.task.id == task.id ? 0.3 : 1)
             .contentShape(.rect(cornerRadius: 6))
-            .onTapGesture { onSelect(task) }
+            .onTapGesture { viewModel.editingTask = task }
             .gesture(allDayDragRecognizer(for: task))
             .accessibilityElement(children: .combine)
             .accessibilityAddTraits(.isButton)
@@ -233,10 +223,10 @@ struct TimeGridView: View {
                 hourLines
                     .contentShape(Rectangle())
                     .onTapGesture { location in
-                        create(on: day, atY: location.y)
+                        viewModel.beginCreatingTask(on: day, atMinute: Int(location.y / hourHeight * 60))
                     }
 
-                ForEach(TimeGridLayout.place(timedTasks(on: day))) { placed in
+                ForEach(viewModel.placedTasks(on: day)) { placed in
                     block(placed, columnWidth: geometry.size.width)
                 }
 
@@ -296,7 +286,7 @@ struct TimeGridView: View {
         }
         .opacity(drag?.task.id == task.id ? 0.3 : 1)
         .contentShape(.rect(cornerRadius: 6))
-        .onTapGesture { onSelect(task) }
+        .onTapGesture { viewModel.editingTask = task }
         .gesture(dragRecognizer(for: placed))
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
@@ -376,20 +366,13 @@ struct TimeGridView: View {
             return
         }
         guard !isAboveGrid(drag), let target = dropTarget(for: drag) else { return }
-        if drag.isResizing {
-            if target.duration != drag.task.durationMinutes {
-                onResize(drag.task, target.duration)
+        withAnimation(.snappy) {
+            if drag.isResizing {
+                viewModel.resize(drag.task, toMinutes: target.duration)
+            } else {
+                viewModel.move(drag.task, toDay: days[target.dayIndex], minute: target.minute)
             }
-            return
         }
-        guard let start = calendar.date(
-                byAdding: .minute,
-                value: target.minute,
-                to: calendar.startOfDay(for: days[target.dayIndex])
-              ),
-              start != drag.task.dueDate || !drag.task.hasTime
-        else { return }
-        onMove(drag.task, start)
     }
 
     private func dropTarget(for drag: TaskDrag) -> DropTarget? {
@@ -399,21 +382,22 @@ struct TimeGridView: View {
             guard let due = drag.task.dueDate,
                   let dayIndex = days.firstIndex(where: { calendar.isDate($0, inSameDayAs: due) })
             else { return nil }
-            let end = snappedMinute(atY: drag.location.y - drag.grabOffset)
-            let clampedEnd = min(max(end, drag.startMinute + minimumDurationMinutes), TimeGridLayout.minutesInDay)
-            return DropTarget(dayIndex: dayIndex, minute: drag.startMinute, duration: clampedEnd - drag.startMinute)
+            let duration = TimelineDragRules.clampedDuration(
+                startMinute: drag.startMinute,
+                endMinute: snappedMinute(atY: drag.location.y - drag.grabOffset)
+            )
+            return DropTarget(dayIndex: dayIndex, minute: drag.startMinute, duration: duration)
         }
 
         let columnWidth = columnsWidth / CGFloat(days.count)
         let day = Int((drag.location.x - gutterWidth) / columnWidth)
 
-        let rawMinute = snappedMinute(atY: drag.location.y - drag.grabOffset)
-        let duration = max(drag.task.durationMinutes, TimeGridLayout.minimumVisualMinutes)
-        let latest = max(TimeGridLayout.minutesInDay - duration, 0) / snapMinutes * snapMinutes
-
         return DropTarget(
             dayIndex: min(max(day, 0), days.count - 1),
-            minute: min(max(rawMinute, 0), latest),
+            minute: TimelineDragRules.clampedStart(
+                snappedMinute(atY: drag.location.y - drag.grabOffset),
+                duration: drag.task.durationMinutes
+            ),
             duration: drag.task.durationMinutes
         )
     }
@@ -421,7 +405,7 @@ struct TimeGridView: View {
     /// Минута шкалы с шагом привязки для точки в координатах видимой области.
     private func snappedMinute(atY y: CGFloat) -> Int {
         let contentY = y + viewport.offset - topPadding
-        return Int((contentY / hourHeight * 60 / CGFloat(snapMinutes)).rounded()) * snapMinutes
+        return TimelineDragRules.snapped(minute: contentY / hourHeight * 60)
     }
 
     /// Блок под пальцем с новым временем.
@@ -503,7 +487,7 @@ struct TimeGridView: View {
     @ViewBuilder
     private func taskMenu(_ task: TaskItem) -> some View {
         Button {
-            onToggle(task)
+            withAnimation(.snappy) { viewModel.toggle(task) }
         } label: {
             Label(
                 task.isCompleted ? "Снять отметку" : "Выполнено",
@@ -511,7 +495,7 @@ struct TimeGridView: View {
             )
         }
         Button(role: .destructive) {
-            onDelete(task)
+            withAnimation { viewModel.delete(task) }
         } label: {
             Label("Удалить", systemImage: "trash")
         }
@@ -521,25 +505,5 @@ struct TimeGridView: View {
 
     private func blockFill(_ task: TaskItem) -> Color {
         AppColors.listColor(task.list).opacity(0.3)
-    }
-
-    private func timedTasks(on day: Date) -> [TaskItem] {
-        tasks.filter { task in
-            guard task.hasTime, let due = task.dueDate else { return false }
-            return calendar.isDate(due, inSameDayAs: day)
-        }
-    }
-
-    private func allDayTasks(on day: Date) -> [TaskItem] {
-        tasks.filter { task in
-            guard !task.hasTime, let due = task.dueDate else { return false }
-            return calendar.isDate(due, inSameDayAs: day)
-        }
-    }
-
-    private func create(on day: Date, atY y: CGFloat) {
-        let minutes = Int(y / hourHeight * 60) / 30 * 30
-        let start = calendar.date(byAdding: .minute, value: minutes, to: calendar.startOfDay(for: day))
-        onCreate(start ?? day)
     }
 }

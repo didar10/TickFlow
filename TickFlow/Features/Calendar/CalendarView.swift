@@ -1,57 +1,42 @@
-import SwiftData
 import SwiftUI
 
 struct CalendarView: View {
-    @Environment(\.modelContext) private var context
+    @Environment(AppDependencies.self) private var dependencies
+    @State private var viewModel: CalendarViewModel
 
-    @Query(sort: [SortDescriptor(\TaskItem.dueDate), SortDescriptor(\TaskItem.sortOrder)])
-    private var allTasks: [TaskItem]
-    @Query(sort: \TaskList.sortOrder) private var lists: [TaskList]
-
-    @AppStorage("calendarMode") private var mode = CalendarMode.month
-    @State private var selectedDate = Calendar.current.startOfDay(for: .now)
-    @State private var displayedMonth = Calendar.current.startOfDay(for: .now)
-    @State private var editingTask: TaskItem?
-    @State private var newTask: NewTask?
-
-    private let calendar = Calendar.current
-
-    /// Параметры создаваемой задачи: день из календаря или время из таймлайна.
-    private struct NewTask: Identifiable {
-        let id = UUID()
-        let date: Date
-        let hasTime: Bool
+    init(viewModel: CalendarViewModel) {
+        _viewModel = State(initialValue: viewModel)
     }
 
     var body: some View {
+        @Bindable var viewModel = viewModel
+
         NavigationStack {
             content
                 .background(AppColors.background.ignoresSafeArea())
                 .overlay(alignment: .bottomTrailing) {
-                    FloatingAddButton {
-                        newTask = NewTask(date: selectedDate, hasTime: false)
-                    }
+                    FloatingAddButton { viewModel.beginCreatingTask() }
                 }
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar { toolbar }
-                .sheet(item: $newTask) { draft in
+                .sheet(item: $viewModel.newTask) { request in
                     TaskEditorView(
-                        task: nil,
-                        defaultList: lists.first,
-                        defaultDueDate: draft.date,
-                        defaultHasTime: draft.hasTime
+                        viewModel: dependencies.makeTaskEditorViewModel(
+                            task: nil,
+                            defaultList: viewModel.defaultList,
+                            defaultDueDate: request.date,
+                            defaultHasTime: request.hasTime
+                        )
                     )
                 }
-                .sheet(item: $editingTask) { task in
-                    TaskEditorView(task: task, defaultList: task.list, defaultDueDate: task.dueDate)
-                }
-                .onChange(of: selectedDate) { _, date in
-                    if !calendar.isDate(date, equalTo: displayedMonth, toGranularity: .month) {
-                        displayedMonth = date
-                    }
-                }
-                .onChange(of: mode) {
-                    displayedMonth = selectedDate
+                .sheet(item: $viewModel.editingTask) { task in
+                    TaskEditorView(
+                        viewModel: dependencies.makeTaskEditorViewModel(
+                            task: task,
+                            defaultList: task.list,
+                            defaultDueDate: task.dueDate
+                        )
+                    )
                 }
         }
     }
@@ -60,12 +45,16 @@ struct CalendarView: View {
 
     @ViewBuilder
     private var content: some View {
-        if mode == .month {
+        @Bindable var viewModel = viewModel
+
+        if viewModel.mode == .month {
             VStack(spacing: 0) {
                 MonthGrid(
-                    month: displayedMonth,
-                    selectedDate: $selectedDate,
-                    taskCounts: taskCounts
+                    month: viewModel.displayedMonth,
+                    days: viewModel.monthDays,
+                    weekdaySymbols: viewModel.weekdaySymbols,
+                    selectedDate: $viewModel.selectedDate,
+                    taskCounts: viewModel.taskCounts
                 )
                 .padding(.horizontal, 12)
                 .padding(.bottom, 8)
@@ -78,32 +67,24 @@ struct CalendarView: View {
                 )
 
                 AgendaList(
-                    tasks: tasksForSelectedDay,
-                    onSelect: { editingTask = $0 },
-                    onToggle: toggle,
-                    onDelete: delete
+                    tasks: viewModel.tasksForSelectedDay,
+                    onSelect: { viewModel.editingTask = $0 },
+                    onToggle: { task in withAnimation(.snappy) { viewModel.toggle(task) } },
+                    onDelete: { task in withAnimation { viewModel.delete(task) } }
                 )
             }
         } else {
-            TimeGridView(
-                days: visibleDays,
-                tasks: allTasks,
-                onSelect: { editingTask = $0 },
-                onToggle: toggle,
-                onDelete: delete,
-                onCreate: { newTask = NewTask(date: $0, hasTime: true) },
-                onMove: move,
-                onResize: resize,
-                onShift: shift
-            )
+            TimeGridView(viewModel: viewModel)
         }
     }
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
+        @Bindable var viewModel = viewModel
+
         ToolbarItem(placement: .topBarLeading) {
             Menu {
-                Picker("Вид", selection: $mode) {
+                Picker("Вид", selection: $viewModel.mode) {
                     ForEach(CalendarMode.allCases) { value in
                         Label(value.title, systemImage: value.symbolName)
                             .tag(value)
@@ -112,19 +93,16 @@ struct CalendarView: View {
                 .pickerStyle(.inline)
 
                 Button("Сегодня", systemImage: "smallcircle.filled.circle") {
-                    withAnimation(.snappy) {
-                        selectedDate = calendar.startOfDay(for: .now)
-                        displayedMonth = selectedDate
-                    }
+                    withAnimation(.snappy) { viewModel.goToToday() }
                 }
             } label: {
-                Image(systemName: mode.symbolName)
+                Image(systemName: viewModel.mode.symbolName)
             }
             .accessibilityLabel("Вид календаря")
         }
 
         ToolbarItem(placement: .principal) {
-            Text(DateFormatting.monthTitle(for: displayedMonth))
+            Text(viewModel.title)
                 .font(.headline)
         }
 
@@ -145,81 +123,13 @@ struct CalendarView: View {
         }
     }
 
-    // MARK: - Данные
-
-    private var visibleDays: [Date] {
-        let first = mode == .week
-            ? calendar.dateInterval(of: .weekOfYear, for: selectedDate)?.start ?? selectedDate
-            : selectedDate
-        return (0..<mode.dayCount).compactMap {
-            calendar.date(byAdding: .day, value: $0, to: first)
-        }
-    }
-
-    private var taskCounts: [Date: Int] {
-        var result: [Date: Int] = [:]
-        for task in allTasks where !task.isCompleted {
-            guard let due = task.dueDate else { continue }
-            result[calendar.startOfDay(for: due), default: 0] += 1
-        }
-        return result
-    }
-
-    /// Сначала задачи на весь день, затем по времени.
-    private var tasksForSelectedDay: [TaskItem] {
-        let tasks = allTasks.filter { task in
-            guard let due = task.dueDate else { return false }
-            return calendar.isDate(due, inSameDayAs: selectedDate)
-        }
-        return tasks.filter { !$0.hasTime } + tasks.filter(\.hasTime)
-    }
-
-    // MARK: - Действия
-
     private func shift(by value: Int) {
-        withAnimation(.snappy) {
-            if mode == .month {
-                displayedMonth = calendar.date(byAdding: .month, value: value, to: displayedMonth) ?? displayedMonth
-            } else {
-                selectedDate = calendar.date(byAdding: .day, value: value * mode.dayCount, to: selectedDate) ?? selectedDate
-                displayedMonth = selectedDate
-            }
-        }
-    }
-
-    private func move(_ task: TaskItem, to start: Date) {
-        withAnimation(.snappy) {
-            task.dueDate = start
-            task.hasTime = true
-        }
-        NotificationScheduler.reschedule(id: task.id, title: task.title, fireDate: task.reminderDate)
-        try? context.save()
-    }
-
-    private func resize(_ task: TaskItem, to minutes: Int) {
-        withAnimation(.snappy) {
-            task.durationMinutes = minutes
-        }
-        try? context.save()
-    }
-
-    private func toggle(_ task: TaskItem) {
-        withAnimation(.snappy) {
-            task.setCompleted(!task.isCompleted)
-        }
-        try? context.save()
-    }
-
-    private func delete(_ task: TaskItem) {
-        NotificationScheduler.cancel(taskID: task.id)
-        withAnimation {
-            context.delete(task)
-        }
-        try? context.save()
+        withAnimation(.snappy) { viewModel.shift(by: value) }
     }
 }
 
 #Preview {
-    CalendarView()
-        .modelContainer(for: [TaskList.self, TaskItem.self, Subtask.self], inMemory: true)
+    let dependencies = AppDependencies.preview()
+    CalendarView(viewModel: dependencies.makeCalendarViewModel())
+        .environment(dependencies)
 }

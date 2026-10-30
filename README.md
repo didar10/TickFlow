@@ -28,11 +28,23 @@ open ~/Desktop/TickFlow/TickFlow.xcodeproj
 TickFlow/
 ├── TickFlowApp.swift        ModelContainer и точка входа
 ├── RootView.swift           TabView: Задачи / Календарь / Поиск
-├── Models/                  TaskItem, TaskList, Subtask, Priority, TaskFilter
+├── App/                     AppDependencies: сборка зависимостей и создание view model
+├── Models/                  TaskItem, TaskList, Subtask, Priority, TaskFilter, CalendarMode
+├── Repositories/            Протоколы TaskRepository и TaskListRepository, реализация на SwiftData
 ├── Services/                NotificationScheduler, SeedService
-├── DesignSystem/            Color(hex:), палитра, CheckboxButton, форматирование дат
-└── Features/                Home, Tasks, Lists, Calendar, Search
+├── DesignSystem/            Color(hex:), палитра, общие компоненты, форматирование дат
+└── Features/                Home, Tasks, Lists, Calendar, Search: у каждого экрана View и ViewModel
 ```
+
+## Архитектура
+
+`View → ViewModel → Repository → SwiftData`
+
+- **View** только показывает состояние и передаёт действия. Геометрия и жесты остаются в ней.
+- **ViewModel** (`@Observable`) отвечает за состояние экрана, подборки, расчёт дат и правила.
+- **Repository** — единственное место, где используются `ModelContext` и напоминания. View model зависят от протоколов.
+- Данные обновляются сами: репозиторий перечитывает кэш после каждого изменения, а наблюдение обновляет экраны.
+- View model получают модели `TaskItem` и `TaskList` напрямую, отдельного слоя DTO нет.
 
 Проект использует синхронизированные группы Xcode (`PBXFileSystemSynchronizedRootGroup`):
 новые файлы внутри папки `TickFlow/` попадают в таргет автоматически, редактировать
@@ -40,7 +52,7 @@ TickFlow/
 
 ## Осознанные упрощения
 
-1. **Фильтрация в памяти.** `@Query` тянет все задачи, отбор идёт в вычисляемых свойствах.
+1. **Фильтрация в памяти.** Репозиторий держит все задачи в памяти, отбор идёт в вычисляемых свойствах view model.
    На сотнях задач это незаметно, на десятках тысяч — нет. Переход на `#Predicate` с
    `task.list?.id == id` стоит делать вместе с пагинацией.
 2. **Нет повторяющихся задач.** Это отдельный RRULE-движок, а не поле в модели.

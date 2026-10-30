@@ -63,3 +63,26 @@ enum TimeGridLayout {
         return result
     }
 }
+
+/// Правила перетаскивания на шкале: шаг привязки и допустимые границы.
+enum TimelineDragRules {
+    static let snapMinutes = 15
+    static let minimumDurationMinutes = 15
+
+    static func snapped(minute: Double) -> Int {
+        Int((minute / Double(snapMinutes)).rounded()) * snapMinutes
+    }
+
+    /// Начало задачи при переносе: задача должна закончиться в пределах дня.
+    static func clampedStart(_ minute: Int, duration: Int) -> Int {
+        let visible = max(duration, TimeGridLayout.minimumVisualMinutes)
+        let latest = max(TimeGridLayout.minutesInDay - visible, 0) / snapMinutes * snapMinutes
+        return min(max(minute, 0), latest)
+    }
+
+    /// Длительность при растягивании за нижний край.
+    static func clampedDuration(startMinute: Int, endMinute: Int) -> Int {
+        let end = min(max(endMinute, startMinute + minimumDurationMinutes), TimeGridLayout.minutesInDay)
+        return end - startMinute
+    }
+}

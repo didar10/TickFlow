@@ -3,11 +3,12 @@ import SwiftUI
 
 @main
 struct TickFlowApp: App {
-    private let container: ModelContainer
+    @State private var dependencies: AppDependencies
 
     init() {
         do {
-            container = try ModelContainer(for: TaskList.self, TaskItem.self, Subtask.self)
+            let container = try ModelContainer(for: TaskList.self, TaskItem.self, Subtask.self)
+            _dependencies = State(initialValue: AppDependencies(container: container))
         } catch {
             fatalError("Не удалось создать ModelContainer: \(error)")
         }
@@ -15,8 +16,8 @@ struct TickFlowApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
+            RootView(dependencies: dependencies)
+                .environment(dependencies)
         }
-        .modelContainer(container)
     }
 }
