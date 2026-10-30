@@ -36,11 +36,17 @@ struct MonthGrid: View {
         let inMonth = calendar.isDate(day, equalTo: month, toGranularity: .month)
         let count = taskCounts[calendar.startOfDay(for: day)] ?? 0
 
-        VStack(spacing: 3) {
+        VStack(spacing: 2) {
             Text(day.formatted(.dateTime.day()))
                 .font(.callout)
-                .fontWeight(isToday ? .bold : .regular)
+                .fontWeight(isSelected || isToday ? .semibold : .regular)
                 .foregroundStyle(foreground(isSelected: isSelected, isToday: isToday, inMonth: inMonth))
+                .frame(width: 32, height: 32)
+                .background {
+                    if isSelected {
+                        Circle().fill(Color.accentColor)
+                    }
+                }
 
             Circle()
                 .fill(count > 0 ? Color.accentColor : Color.clear)
@@ -49,12 +55,6 @@ struct MonthGrid: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: 44)
-        .background {
-            if isSelected {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.accentColor.opacity(0.18))
-            }
-        }
         .contentShape(Rectangle())
         .onTapGesture {
             selectedDate = calendar.startOfDay(for: day)
@@ -62,6 +62,7 @@ struct MonthGrid: View {
     }
 
     private func foreground(isSelected: Bool, isToday: Bool, inMonth: Bool) -> Color {
+        if isSelected { return .white }
         if isToday { return .accentColor }
         if !inMonth { return .secondary.opacity(0.5) }
         return .primary

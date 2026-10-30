@@ -22,9 +22,12 @@ struct SearchView: View {
                     }
                     .contentShape(Rectangle())
                     .onTapGesture { editingTask = task }
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(AppColors.surface)
                 }
             }
             .listStyle(.plain)
+            .screenBackground()
             .navigationTitle("Поиск")
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $query, prompt: "Название, заметка или список")

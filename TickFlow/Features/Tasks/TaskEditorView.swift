@@ -6,6 +6,7 @@ struct TaskEditorView: View {
     let task: TaskItem?
     var defaultList: TaskList?
     var defaultDueDate: Date?
+    var defaultHasTime = false
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
@@ -16,6 +17,7 @@ struct TaskEditorView: View {
     @State private var hasDueDate = false
     @State private var dueDate = Date.now
     @State private var hasTime = false
+    @State private var durationMinutes = 60
     @State private var priority: Priority = .none
     @State private var selectedListID: UUID?
     @State private var subtasks: [SubtaskDraft] = []
@@ -44,12 +46,13 @@ struct TaskEditorView: View {
                     Toggle("Дата", isOn: $hasDueDate.animation())
                     if hasDueDate {
                         DatePicker(
-                            "День",
+                            hasTime ? "Начало" : "День",
                             selection: $dueDate,
                             displayedComponents: hasTime ? [.date, .hourAndMinute] : [.date]
                         )
-                        Toggle("Указать время", isOn: $hasTime.animation())
+                        Toggle("Указать время", isOn: hasTimeBinding.animation())
                         if hasTime {
+                            DatePicker("Конец", selection: endTime, displayedComponents: .hourAndMinute)
                             Label(
                                 "Придёт локальное уведомление",
                                 systemImage: "bell"
@@ -113,6 +116,7 @@ struct TaskEditorView: View {
                     }
                 }
             }
+            .screenBackground()
             .navigationTitle(task == nil ? "Новая задача" : "Задача")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -125,6 +129,35 @@ struct TaskEditorView: View {
                 }
             }
             .onAppear(perform: load)
+        }
+    }
+
+    // MARK: - Время
+
+    /// При включении времени у даты без времени подставляем ближайший час, а не полночь.
+    private var hasTimeBinding: Binding<Bool> {
+        Binding {
+            hasTime
+        } set: { isOn in
+            hasTime = isOn
+            let calendar = Calendar.current
+            guard isOn, dueDate == calendar.startOfDay(for: dueDate) else { return }
+            let nextHour = calendar.component(.hour, from: .now) + 1
+            dueDate = calendar.date(byAdding: .hour, value: min(nextHour, 23), to: dueDate) ?? dueDate
+        }
+    }
+
+    /// Конец раньше начала означает переход через полночь.
+    private var endTime: Binding<Date> {
+        Binding {
+            dueDate.addingTimeInterval(TimeInterval(durationMinutes * 60))
+        } set: { end in
+            let calendar = Calendar.current
+            let parts = calendar.dateComponents([.hour, .minute], from: end)
+            let startParts = calendar.dateComponents([.hour, .minute], from: dueDate)
+            let minutes = ((parts.hour ?? 0) - (startParts.hour ?? 0)) * 60
+                + (parts.minute ?? 0) - (startParts.minute ?? 0)
+            durationMinutes = minutes > 0 ? minutes : minutes + 24 * 60
         }
     }
 
@@ -141,6 +174,7 @@ struct TaskEditorView: View {
             hasDueDate = task.dueDate != nil
             dueDate = task.dueDate ?? defaultDueDate ?? .now
             hasTime = task.hasTime
+            durationMinutes = task.durationMinutes
             priority = task.priority
             selectedListID = task.list?.id
             subtasks = task.sortedSubtasks.map {
@@ -149,6 +183,7 @@ struct TaskEditorView: View {
         } else {
             hasDueDate = defaultDueDate != nil
             dueDate = defaultDueDate ?? .now
+            hasTime = defaultHasTime
             selectedListID = defaultList?.id ?? lists.first?.id
         }
     }
@@ -180,6 +215,7 @@ struct TaskEditorView: View {
         item.notes = notes
         item.priority = priority
         item.hasTime = hasDueDate && hasTime
+        item.durationMinutes = durationMinutes
         item.dueDate = hasDueDate
             ? (hasTime ? dueDate : calendar.startOfDay(for: dueDate))
             : nil

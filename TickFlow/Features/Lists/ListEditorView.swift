@@ -57,6 +57,7 @@ struct ListEditorView: View {
                     .padding(.vertical, 4)
                 }
             }
+            .screenBackground()
             .navigationTitle(list == nil ? "Новый список" : "Список")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

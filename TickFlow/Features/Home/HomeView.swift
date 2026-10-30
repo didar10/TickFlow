@@ -22,6 +22,7 @@ struct HomeView: View {
                             Label(filter.defaultTitle, systemImage: filter.symbolName)
                                 .badge(count(for: filter))
                         }
+                        .listRowBackground(AppColors.surface)
                     }
                 }
 
@@ -36,6 +37,7 @@ struct HomeView: View {
                             }
                             .badge(list.activeCount)
                         }
+                        .listRowBackground(AppColors.surface)
                         .swipeActions(edge: .trailing) {
                             Button(role: .destructive) {
                                 delete(list)
@@ -57,8 +59,10 @@ struct HomeView: View {
                     } label: {
                         Label("Новый список", systemImage: "plus")
                     }
+                    .listRowBackground(AppColors.surface)
                 }
             }
+            .screenBackground()
             .navigationTitle("TickFlow")
             .navigationDestination(for: TaskFilter.self) { filter in
                 TaskListView(filter: filter)

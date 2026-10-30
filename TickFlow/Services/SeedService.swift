@@ -46,6 +46,33 @@ enum SeedService {
         ]
 
         samples.forEach(context.insert)
+
+        // Задачи со временем на завтра и послезавтра, чтобы таймлайн не был пустым.
+        let timed: [(day: Int, hour: Int, minutes: Int, title: String, list: TaskList)] = [
+            (1, 7, 60, "Утренняя пробежка", personal),
+            (1, 9, 120, "Закупка продуктов", personal),
+            (1, 12, 60, "Ответить на письма", inbox),
+            (1, 13, 240, "Обсудить план с клиентом", work),
+            (2, 8, 240, "Подготовить презентацию", work),
+            (2, 13, 60, "Встреча по проекту", work),
+            (2, 14, 120, "Забрать посылку", personal)
+        ]
+        for (index, item) in timed.enumerated() {
+            guard
+                let day = calendar.date(byAdding: .day, value: item.day, to: today),
+                let start = calendar.date(byAdding: .hour, value: item.hour, to: day)
+            else { continue }
+            context.insert(
+                TaskItem(
+                    title: item.title,
+                    dueDate: start,
+                    hasTime: true,
+                    durationMinutes: item.minutes,
+                    list: item.list,
+                    sortOrder: samples.count + index
+                )
+            )
+        }
         try? context.save()
     }
 }

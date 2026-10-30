@@ -32,6 +32,9 @@ struct TaskListView: View {
                 } header: {
                     if !group.title.isEmpty {
                         Text(group.title)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Color.accentColor)
+                            .textCase(nil)
                     }
                 }
             }
@@ -46,10 +49,13 @@ struct TaskListView: View {
                         Text("Завершено: \(completedTasks.count)")
                             .foregroundStyle(.secondary)
                     }
+                    .listRowBackground(AppColors.surface)
                 }
             }
         }
         .listStyle(.insetGrouped)
+        .contentMargins(.bottom, 88, for: .scrollContent)
+        .screenBackground()
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.large)
         .overlay {
@@ -57,25 +63,13 @@ struct TaskListView: View {
                 ContentUnavailableView(
                     "Задач нет",
                     systemImage: "checkmark.circle",
-                    description: Text("Добавьте первую задачу в поле внизу экрана.")
+                    description: Text("Добавьте первую задачу кнопкой «плюс».")
                 )
             }
         }
-        .safeAreaInset(edge: .bottom) {
+        .overlay(alignment: .bottomTrailing) {
             if filter != .completed {
-                QuickAddBar { title in
-                    createTask(title: title)
-                }
-            }
-        }
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    isCreatingTask = true
-                } label: {
-                    Image(systemName: "plus")
-                }
-                .accessibilityLabel("Новая задача")
+                FloatingAddButton { isCreatingTask = true }
             }
         }
         .sheet(isPresented: $isCreatingTask) {
@@ -99,6 +93,9 @@ struct TaskListView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture { editingTask = task }
+        .listRowInsets(EdgeInsets())
+        .listRowBackground(AppColors.surface)
+        .listRowSeparator(.hidden)
         .swipeActions(edge: .trailing) {
             Button(role: .destructive) {
                 delete(task)
@@ -217,20 +214,6 @@ struct TaskListView: View {
             task.dueDate = calendar.startOfDay(for: .now)
         }
         NotificationScheduler.reschedule(id: task.id, title: task.title, fireDate: task.reminderDate)
-        try? context.save()
-    }
-
-    private func createTask(title: String) {
-        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-
-        let task = TaskItem(
-            title: trimmed,
-            dueDate: filter.defaultDueDate,
-            list: currentList ?? lists.first,
-            sortOrder: (allTasks.map(\.sortOrder).max() ?? 0) + 1
-        )
-        context.insert(task)
         try? context.save()
     }
 }
