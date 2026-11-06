@@ -1,37 +1,72 @@
 import Foundation
 import Observation
 
+/// Полноэкранный поиск по названию, заметкам и категории.
 @MainActor
 @Observable
 final class SearchViewModel {
+    struct ResultRow: Identifiable {
+        let id: UUID
+        let title: String
+        let meta: String
+        let colorHex: String
+        let isCompleted: Bool
+        let isOverdue: Bool
+    }
+
     var query = ""
-    var editingTask: TaskItem?
+    /// Открытый редактор задачи.
+    var editorRequest: TaskEditorRequest?
+
+    let suggestions = ["Работа", "Ревью", "Здоровье", "Дела"]
 
     @ObservationIgnored private let taskRepository: any TaskRepository
+    @ObservationIgnored private let settings: any SettingsRepository
+    @ObservationIgnored private let actions: TaskActions
 
-    init(tasks: any TaskRepository) {
+    init(tasks: any TaskRepository, settings: any SettingsRepository, toasts: ToastCenter) {
         taskRepository = tasks
+        self.settings = settings
+        actions = TaskActions(tasks: tasks, toasts: toasts)
     }
 
-    var hasQuery: Bool {
-        !query.isEmpty
-    }
+    var hasQuery: Bool { !trimmedQuery.isEmpty }
+    var showsNoResults: Bool { hasQuery && results.isEmpty }
+    var trimmedQueryText: String { trimmedQuery }
 
-    /// Сначала незавершённые, внутри групп — новые выше.
-    var results: [TaskItem] {
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return [] }
+    /// Сначала незавершённые, внутри групп — по сроку.
+    var results: [ResultRow] {
+        guard hasQuery else { return [] }
+        let format = DisplayFormatter(settings: settings.settings)
         let matches = taskRepository.tasks
             .filter { task in
-                task.title.localizedStandardContains(trimmed)
-                    || task.notes.localizedStandardContains(trimmed)
-                    || (task.list?.name.localizedStandardContains(trimmed) ?? false)
+                task.title.localizedStandardContains(trimmedQuery)
+                    || task.notes.localizedStandardContains(trimmedQuery)
+                    || (task.list?.name.localizedStandardContains(trimmedQuery) ?? false)
             }
-            .sorted { $0.createdAt > $1.createdAt }
-        return matches.filter { !$0.isCompleted } + matches.filter(\.isCompleted)
+            .sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
+        return (matches.filter { !$0.isCompleted } + matches.filter(\.isCompleted)).map { task in
+            ResultRow(
+                id: task.id,
+                title: task.title,
+                meta: format.dueLabel(for: task) + " · " + (task.list?.name ?? "Без категории"),
+                colorHex: task.list?.colorHex ?? AppColors.fallbackList,
+                isCompleted: task.isCompleted,
+                isOverdue: task.isOverdue
+            )
+        }
     }
 
-    func toggle(_ task: TaskItem) {
-        taskRepository.setCompleted(task, !task.isCompleted)
+    func applySuggestion(_ text: String) {
+        query = text
+    }
+
+    func open(_ id: UUID) {
+        guard let task = taskRepository.tasks.first(where: { $0.id == id }) else { return }
+        editorRequest = .edit(task)
+    }
+
+    private var trimmedQuery: String {
+        query.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
