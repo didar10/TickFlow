@@ -1,94 +1,90 @@
 import SwiftUI
 
-/// Задачи выбранного дня по порядку: время слева, карточка справа.
+/// Задачи выбранного дня под сеткой месяца.
 struct AgendaList: View {
-    let tasks: [TaskItem]
-    let onSelect: (TaskItem) -> Void
-    let onToggle: (TaskItem) -> Void
-    let onDelete: (TaskItem) -> Void
+    let viewModel: CalendarViewModel
 
     var body: some View {
-        List {
-            ForEach(tasks) { task in
-                row(task, isLast: task.id == tasks.last?.id)
-                    .contentShape(Rectangle())
-                    .onTapGesture { onSelect(task) }
-                    .listRowInsets(EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12))
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                    .swipeActions(edge: .trailing) {
-                        Button(role: .destructive) {
-                            onDelete(task)
-                        } label: {
-                            Label("Удалить", systemImage: "trash")
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(viewModel.agendaTitle)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(AppColors.label)
+                Spacer()
+                Text(viewModel.agendaCount)
+                    .font(AppFont.footnote)
+                    .foregroundStyle(AppColors.textTertiary)
+            }
+            .padding(.horizontal, 4)
+
+            let rows = viewModel.agenda
+            if rows.isEmpty {
+                VStack(spacing: 10) {
+                    Text("Ничего не запланировано")
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColors.textSecondary)
+                    Button("Добавить задачу", action: viewModel.beginCreatingTask)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(AppColors.accent)
+                        .buttonStyle(.plain)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
+                .card()
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
+                        AgendaRowView(row: row) {
+                            viewModel.toggle(row.id)
+                        } onOpen: {
+                            viewModel.open(row.id)
+                        }
+                        if index < rows.count - 1 {
+                            Divider().overlay(AppColors.separator).padding(.leading, 50)
                         }
                     }
-            }
-        }
-        .listStyle(.plain)
-        .contentMargins(.bottom, 88, for: .scrollContent)
-        .screenBackground()
-        .overlay {
-            if tasks.isEmpty {
-                ContentUnavailableView(
-                    "На этот день задач нет",
-                    systemImage: "calendar",
-                    description: Text("Добавьте задачу кнопкой «плюс».")
-                )
-            }
-        }
-    }
-
-    private func row(_ task: TaskItem, isLast: Bool) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            VStack(spacing: 6) {
-                Text(DateFormatting.agendaLabel(for: task))
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 12)
-
-                if !isLast {
-                    Rectangle()
-                        .fill(AppColors.hairline)
-                        .frame(width: 1)
-                        .frame(maxHeight: .infinity)
                 }
+                .background(AppColors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
-            .frame(width: 42)
-
-            card(task)
-                .padding(.bottom, 10)
         }
+        .padding(.horizontal, 16)
+        .padding(.top, 18)
     }
+}
 
-    private func card(_ task: TaskItem) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(DateFormatting.timeRange(for: task) ?? "Весь день")
-                    .font(.footnote)
-                    .foregroundStyle(Color.accentColor)
+private struct AgendaRowView: View {
+    let row: CalendarItems.AgendaRow
+    let onToggle: () -> Void
+    let onOpen: () -> Void
 
-                Text(task.title)
-                    .strikethrough(task.isCompleted)
-                    .foregroundStyle(task.isCompleted ? .secondary : .primary)
-
-                if !task.notes.isEmpty {
-                    Text(task.notes)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
+    var body: some View {
+        HStack(spacing: 12) {
+            CheckCircle(isOn: row.isCompleted, tint: Color(hex: row.colorHex), isUrgent: row.isUrgent, action: onToggle)
+            Button(action: onOpen) {
+                HStack(spacing: 8) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(row.title)
+                            .font(AppFont.body)
+                            .foregroundStyle(row.isCompleted ? AppColors.textTertiary : AppColors.label)
+                            .strikethrough(row.isCompleted)
+                            .lineLimit(1)
+                        HStack(spacing: 5) {
+                            Circle().fill(Color(hex: row.colorHex)).frame(width: 6, height: 6)
+                            Text(row.time)
+                                .font(AppFont.footnote)
+                                .foregroundStyle(AppColors.textSecondary)
+                        }
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(AppColors.chevron)
                 }
+                .contentShape(Rectangle())
             }
-
-            Spacer(minLength: 0)
-
-            CheckboxButton(isCompleted: task.isCompleted, priority: task.priority) {
-                onToggle(task)
-            }
+            .buttonStyle(.plain)
         }
-        .padding(12)
-        .background(AppColors.surface, in: .rect(cornerRadius: 12))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
     }
 }
