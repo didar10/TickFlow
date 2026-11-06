@@ -2,18 +2,47 @@ import SwiftUI
 
 struct RootView: View {
     let dependencies: AppDependencies
+    @State private var viewModel: RootViewModel
+
+    init(dependencies: AppDependencies) {
+        self.dependencies = dependencies
+        _viewModel = State(initialValue: dependencies.makeRootViewModel())
+    }
 
     var body: some View {
-        TabView {
-            Tab("Задачи", systemImage: "checklist") {
-                HomeView(viewModel: dependencies.makeHomeViewModel())
-            }
-            Tab("Календарь", systemImage: "calendar") {
+        @Bindable var viewModel = viewModel
+
+        TabView(selection: $viewModel.selectedTab) {
+            Tab(AppTab.calendar.title, systemImage: AppTab.calendar.symbolName, value: AppTab.calendar) {
                 CalendarView(viewModel: dependencies.makeCalendarViewModel())
             }
-            Tab("Поиск", systemImage: "magnifyingglass") {
-                SearchView(viewModel: dependencies.makeSearchViewModel())
+            Tab(AppTab.tasks.title, systemImage: AppTab.tasks.symbolName, value: AppTab.tasks) {
+                TasksView(viewModel: dependencies.makeTasksViewModel())
             }
+            Tab(AppTab.habits.title, systemImage: AppTab.habits.symbolName, value: AppTab.habits) {
+                HabitsView(viewModel: dependencies.makeHabitsViewModel())
+            }
+            Tab(AppTab.insights.title, systemImage: AppTab.insights.symbolName, value: AppTab.insights) {
+                InsightsView(viewModel: dependencies.makeInsightsViewModel())
+            }
+        }
+        .tint(AppColors.accent)
+        .preferredColorScheme(viewModel.colorScheme)
+        .overlay(alignment: .bottom) {
+            if let toast = viewModel.toast {
+                ToastView(toast: toast, undo: viewModel.undoToast)
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 96)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .id(toast.id)
+            }
+        }
+        .animation(.easeOut(duration: 0.25), value: viewModel.toast?.id)
+        .sheet(isPresented: $viewModel.isSettingsPresented) {
+            SettingsView(viewModel: dependencies.makeSettingsViewModel())
+        }
+        .fullScreenCover(isPresented: $viewModel.isOnboardingPresented) {
+            OnboardingView(viewModel: dependencies.makeOnboardingViewModel())
         }
         .task {
             await dependencies.bootstrap()

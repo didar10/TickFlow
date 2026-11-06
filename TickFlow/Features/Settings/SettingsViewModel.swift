@@ -1,0 +1,211 @@
+import Foundation
+import Observation
+import UIKit
+
+/// Что открыть в редакторе категории.
+struct ListEditorRequest: Identifiable {
+    let id = UUID()
+    let list: TaskList?
+}
+
+/// Настройки: оформление, календарь, уведомления, категории, привычки и данные.
+@MainActor
+@Observable
+final class SettingsViewModel {
+    struct CategoryRow: Identifiable {
+        let id: UUID
+        let name: String
+        let colorHex: String
+        let count: String
+    }
+
+    var listEditorRequest: ListEditorRequest?
+    var isLoadSampleConfirmationPresented = false
+    private(set) var notificationsDenied = false
+
+    @ObservationIgnored private let settings: any SettingsRepository
+    @ObservationIgnored private let tasks: any TaskRepository
+    @ObservationIgnored private let lists: any TaskListRepository
+    @ObservationIgnored private let habits: any HabitRepository
+    @ObservationIgnored private let toasts: ToastCenter
+    @ObservationIgnored private let navigator: AppNavigator
+    @ObservationIgnored private let loadSampleData: () -> Void
+
+    init(
+        settings: any SettingsRepository,
+        tasks: any TaskRepository,
+        lists: any TaskListRepository,
+        habits: any HabitRepository,
+        toasts: ToastCenter,
+        navigator: AppNavigator,
+        loadSampleData: @escaping () -> Void
+    ) {
+        self.settings = settings
+        self.tasks = tasks
+        self.lists = lists
+        self.habits = habits
+        self.toasts = toasts
+        self.navigator = navigator
+        self.loadSampleData = loadSampleData
+    }
+
+    private var current: AppSettings { settings.settings }
+
+    // MARK: - Оформление
+
+    var themeOptions: [AppTheme] { AppTheme.allCases }
+
+    var theme: AppTheme {
+        get { current.theme }
+        set { settings.update { $0.theme = newValue } }
+    }
+
+    // MARK: - Календарь
+
+    var weekdayOptions: [(value: Int, title: String)] { [(2, "Понедельник"), (1, "Воскресенье")] }
+
+    var firstWeekday: Int {
+        get { current.firstWeekday }
+        set { settings.update { $0.firstWeekday = newValue } }
+    }
+
+    var calendarModeOptions: [(value: CalendarMode, title: String)] {
+        [(.day, "День"), (.threeDay, "3 дня"), (.week, "Неделя"), (.month, "Месяц")]
+    }
+
+    var defaultCalendarMode: CalendarMode {
+        get { current.defaultCalendarMode }
+        set {
+            settings.update {
+                $0.defaultCalendarMode = newValue
+                $0.lastCalendarMode = newValue
+            }
+        }
+    }
+
+    var uses24HourTime: Bool {
+        get { current.uses24HourTime }
+        set { settings.update { $0.uses24HourTime = newValue } }
+    }
+
+    var durationOptions: [(value: Int, title: String)] {
+        [15, 30, 45, 60, 90].map { ($0, DateFormatting.duration(minutes: $0)) }
+    }
+
+    var defaultTaskDuration: Int {
+        get { current.defaultTaskDuration }
+        set { settings.update { $0.defaultTaskDuration = newValue } }
+    }
+
+    var workdayStartLabel: String { format.time(minute: current.workdayStartHour * 60) }
+    var workdayEndLabel: String { format.time(minute: current.workdayEndHour * 60) }
+
+    func shiftWorkdayStart(_ delta: Int) {
+        settings.update { $0.workdayStartHour = min(max(0, $0.workdayStartHour + delta), $0.workdayEndHour - 1) }
+    }
+
+    func shiftWorkdayEnd(_ delta: Int) {
+        settings.update { $0.workdayEndHour = min(max($0.workdayStartHour + 1, $0.workdayEndHour + delta), 24) }
+    }
+
+    // MARK: - Уведомления
+
+    var taskRemindersEnabled: Bool {
+        get { current.taskRemindersEnabled && !notificationsDenied }
+        set {
+            settings.update { $0.taskRemindersEnabled = newValue }
+            tasks.rescheduleReminders(enabled: newValue)
+        }
+    }
+
+    var reminderOptions: [ReminderOption] { ReminderOption.allCases }
+
+    var defaultReminder: ReminderOption {
+        get { current.defaultReminder }
+        set { settings.update { $0.defaultReminder = newValue } }
+    }
+
+    var habitRemindersEnabled: Bool {
+        get { current.habitRemindersEnabled && !notificationsDenied }
+        set {
+            settings.update { $0.habitRemindersEnabled = newValue }
+            habits.rescheduleReminders(enabled: newValue)
+        }
+    }
+
+    /// Проверяет, не запрещены ли уведомления в системных настройках.
+    func refreshAuthorization() async {
+        notificationsDenied = await NotificationScheduler.isDenied()
+    }
+
+    // MARK: - Категории
+
+    var categories: [CategoryRow] {
+        lists.lists.map { list in
+            let count = list.tasks.count
+            return CategoryRow(id: list.id, name: list.name, colorHex: list.colorHex, count: "\(count) \(Plural.tasks(count))")
+        }
+    }
+
+    func editCategory(_ id: UUID) {
+        listEditorRequest = ListEditorRequest(list: lists.lists.first { $0.id == id })
+    }
+
+    func addCategory() {
+        listEditorRequest = ListEditorRequest(list: nil)
+    }
+
+    // MARK: - Привычки
+
+    var allowsRestDays: Bool {
+        get { current.allowsRestDays }
+        set { settings.update { $0.allowsRestDays = newValue } }
+    }
+
+    var skippedDaysKeepStreak: Bool {
+        get { current.skippedDaysKeepStreak }
+        set { settings.update { $0.skippedDaysKeepStreak = newValue } }
+    }
+
+    // MARK: - Данные
+
+    var exportFile: ExportFile {
+        let day = Date.now.formatted(.iso8601.year().month().day())
+        return ExportFile(fileName: "TickFlow-\(day).json") { [tasks, lists, habits] in
+            try ExportService.makeJSON(tasks: tasks.tasks, lists: lists.lists, habits: habits.habits)
+        }
+    }
+
+    func requestLoadSample() {
+        isLoadSampleConfirmationPresented = true
+    }
+
+    func confirmLoadSample() {
+        loadSampleData()
+        toasts.show("Пример данных загружен")
+    }
+
+    // MARK: - О приложении
+
+    var version: String {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String ?? "1.0"
+        let build = info?["CFBundleVersion"] as? String ?? "1"
+        return "\(version) (\(build))"
+    }
+
+    /// Настройки закрываются, и после этого показывается знакомство.
+    func replayOnboarding() {
+        navigator.isSettingsPresented = false
+        let settings = settings
+        Task {
+            try? await Task.sleep(for: .milliseconds(500))
+            settings.update { $0.hasCompletedOnboarding = false }
+        }
+    }
+
+    /// Системные настройки приложения — включить уведомления.
+    var systemSettingsURL: URL? { URL(string: UIApplication.openSettingsURLString) }
+
+    private var format: DisplayFormatter { DisplayFormatter(settings: current) }
+}
