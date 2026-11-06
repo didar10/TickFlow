@@ -8,9 +8,14 @@ struct TaskDraft {
     var dueDate: Date?
     var hasTime: Bool
     var durationMinutes: Int
+    /// Последний день многодневной задачи. `nil` — один день.
+    var endDay: Date?
     var priority: Priority
+    var reminder: ReminderOption
+    var repeatRule: RepeatRule
     var list: TaskList?
     var subtasks: [SubtaskDraft]
+    var isCompleted = false
 }
 
 struct SubtaskDraft: Identifiable, Hashable {
@@ -23,4 +28,37 @@ struct TaskListDraft {
     var name: String
     var colorHex: String
     var symbolName: String
+}
+
+/// Полный снимок задачи. Нужен для «Отменить»: восстановить после удаления или правки.
+struct TaskSnapshot {
+    let id: UUID
+    let draft: TaskDraft
+    let completedAt: Date?
+    let createdAt: Date
+    let sortOrder: Int
+
+    @MainActor
+    init(_ task: TaskItem) {
+        id = task.id
+        completedAt = task.completedAt
+        createdAt = task.createdAt
+        sortOrder = task.sortOrder
+        draft = TaskDraft(
+            title: task.title,
+            notes: task.notes,
+            dueDate: task.dueDate,
+            hasTime: task.hasTime,
+            durationMinutes: task.durationMinutes,
+            endDay: task.endDay,
+            priority: task.priority,
+            reminder: task.reminder,
+            repeatRule: task.repeatRule,
+            list: task.list,
+            subtasks: task.sortedSubtasks.map {
+                SubtaskDraft(id: $0.id, title: $0.title, isCompleted: $0.isCompleted)
+            },
+            isCompleted: task.isCompleted
+        )
+    }
 }

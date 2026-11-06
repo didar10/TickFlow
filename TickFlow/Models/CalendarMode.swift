@@ -1,7 +1,7 @@
 import Foundation
 
 /// Способ просмотра календаря.
-enum CalendarMode: String, CaseIterable, Identifiable {
+enum CalendarMode: String, CaseIterable, Identifiable, Codable {
     case month
     case day
     case threeDay

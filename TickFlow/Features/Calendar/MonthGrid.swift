@@ -1,72 +1,88 @@
 import SwiftUI
 
-/// Сетка месяца. Дни за пределами месяца приглушены, под числом — индикатор задач.
+/// Сетка месяца: до трёх точек задач под числом и легенда.
 struct MonthGrid: View {
-    let month: Date
-    let days: [Date]
-    let weekdaySymbols: [String]
-    @Binding var selectedDate: Date
-    /// Количество незавершённых задач по дням (ключ — начало дня).
-    let taskCounts: [Date: Int]
+    let viewModel: CalendarViewModel
 
-    private let calendar = Calendar.current
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
 
     var body: some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 4) {
-                ForEach(weekdaySymbols, id: \.self) { symbol in
+        VStack(spacing: 6) {
+            HStack(spacing: 0) {
+                ForEach(Array(viewModel.weekdaySymbols.enumerated()), id: \.offset) { _, symbol in
                     Text(symbol.uppercased())
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(AppColors.textTertiary)
                         .frame(maxWidth: .infinity)
                 }
             }
 
-            LazyVGrid(columns: columns, spacing: 4) {
-                ForEach(days, id: \.self) { day in
-                    dayCell(day)
+            LazyVGrid(columns: columns, spacing: 2) {
+                ForEach(viewModel.monthCells) { cell in
+                    MonthCellView(cell: cell) { viewModel.select(cell.id) }
                 }
             }
+
+            HStack(spacing: 14) {
+                legend(AppColors.accent, "Запланировано")
+                legend(AppColors.nowLine, "Просрочено")
+                legend(AppColors.doneDot, "Выполнено")
+            }
+            .padding(.top, 4)
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(AppColors.surface)
     }
 
-    @ViewBuilder
-    private func dayCell(_ day: Date) -> some View {
-        let isSelected = calendar.isDate(day, inSameDayAs: selectedDate)
-        let isToday = calendar.isDateInToday(day)
-        let inMonth = calendar.isDate(day, equalTo: month, toGranularity: .month)
-        let count = taskCounts[calendar.startOfDay(for: day)] ?? 0
+    private func legend(_ color: Color, _ title: String) -> some View {
+        HStack(spacing: 5) {
+            Circle().fill(color).frame(width: 6, height: 6)
+            Text(title).font(.system(size: 11)).foregroundStyle(AppColors.textSecondary)
+        }
+    }
+}
 
-        VStack(spacing: 2) {
-            Text(day.formatted(.dateTime.day()))
-                .font(.callout)
-                .fontWeight(isSelected || isToday ? .semibold : .regular)
-                .foregroundStyle(foreground(isSelected: isSelected, isToday: isToday, inMonth: inMonth))
-                .frame(width: 32, height: 32)
-                .background {
-                    if isSelected {
-                        Circle().fill(Color.accentColor)
+private struct MonthCellView: View {
+    let cell: CalendarItems.MonthCell
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 3) {
+                Text(cell.number)
+                    .font(.system(size: 16, weight: cell.isSelected || cell.isToday ? .semibold : .regular))
+                    .foregroundStyle(numberColor)
+                    .frame(width: 32, height: 32)
+                    .background {
+                        if cell.isSelected {
+                            Circle().fill(cell.isToday ? AppColors.accent : AppColors.label)
+                        }
+                    }
+                HStack(spacing: 2) {
+                    ForEach(Array(cell.dotHexes.enumerated()), id: \.offset) { _, hex in
+                        Circle().fill(Color(hex: hex)).frame(width: 5, height: 5)
+                    }
+                    if !cell.more.isEmpty {
+                        Text(cell.more)
+                            .font(.system(size: 8, weight: .semibold))
+                            .foregroundStyle(AppColors.textTertiary)
                     }
                 }
-
-            Circle()
-                .fill(count > 0 ? Color.accentColor : Color.clear)
-                .frame(width: 5, height: 5)
-                .opacity(inMonth ? 1 : 0.4)
+                .frame(height: 6)
+                .opacity(cell.isInMonth ? 1 : 0.4)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 50)
+            .contentShape(Rectangle())
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: 44)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            selectedDate = calendar.startOfDay(for: day)
-        }
+        .buttonStyle(.plain)
     }
 
-    private func foreground(isSelected: Bool, isToday: Bool, inMonth: Bool) -> Color {
-        if isSelected { return .white }
-        if isToday { return .accentColor }
-        if !inMonth { return .secondary.opacity(0.5) }
-        return .primary
+    private var numberColor: Color {
+        if cell.isSelected { return .white }
+        if cell.isToday { return AppColors.accent }
+        if !cell.isInMonth { return AppColors.chevron }
+        return AppColors.label
     }
 }

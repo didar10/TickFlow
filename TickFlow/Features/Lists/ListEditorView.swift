@@ -4,72 +4,108 @@ struct ListEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: ListEditorViewModel
 
-    private let columns = [GridItem(.adaptive(minimum: 44), spacing: 12)]
-
     init(viewModel: ListEditorViewModel) {
         _viewModel = State(initialValue: viewModel)
     }
 
     var body: some View {
         @Bindable var viewModel = viewModel
+        let tint = Color(hex: viewModel.colorHex)
 
-        NavigationStack {
-            Form {
-                Section {
-                    TextField("Название списка", text: $viewModel.name)
-                }
-
-                Section("Цвет") {
-                    LazyVGrid(columns: columns, spacing: 12) {
-                        ForEach(AppPalette.listColors, id: \.self) { hex in
-                            Circle()
-                                .fill(Color(hex: hex))
-                                .frame(width: 32, height: 32)
-                                .overlay {
-                                    Circle()
-                                        .stroke(Color.primary, lineWidth: viewModel.colorHex == hex ? 2 : 0)
-                                        .padding(-4)
-                                }
-                                .onTapGesture { viewModel.colorHex = hex }
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-
-                Section("Иконка") {
-                    LazyVGrid(columns: columns, spacing: 12) {
-                        ForEach(AppPalette.listSymbols, id: \.self) { symbol in
-                            Image(systemName: symbol)
-                                .font(.title3)
-                                .frame(width: 40, height: 40)
-                                .background {
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .fill(viewModel.symbolName == symbol
-                                              ? Color(hex: viewModel.colorHex).opacity(0.2)
-                                              : Color.clear)
-                                }
-                                .foregroundStyle(viewModel.symbolName == symbol ? Color(hex: viewModel.colorHex) : .secondary)
-                                .onTapGesture { viewModel.symbolName = symbol }
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-            }
-            .screenBackground()
-            .navigationTitle(viewModel.navigationTitle)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Отмена") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Готово") {
-                        viewModel.save()
-                        dismiss()
-                    }
+        VStack(spacing: 0) {
+            HStack {
+                Button("Отмена") { dismiss() }
+                Spacer()
+                Text(viewModel.title).font(AppFont.headline).foregroundStyle(AppColors.label)
+                Spacer()
+                Button(viewModel.saveTitle, action: viewModel.save)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(viewModel.canSave ? AppColors.accent : AppColors.chevron)
                     .disabled(!viewModel.canSave)
-                }
             }
+            .font(.system(size: 17))
+            .foregroundStyle(AppColors.accent)
+            .buttonStyle(.plain)
+            .frame(height: 48)
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+
+            ScrollView {
+                VStack(spacing: 14) {
+                    HStack(spacing: 12) {
+                        Image(systemName: viewModel.symbolName)
+                            .font(.system(size: 19))
+                            .foregroundStyle(tint)
+                            .frame(width: 42, height: 42)
+                            .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        TextField("Название категории", text: $viewModel.name)
+                            .font(.system(size: 20, weight: .semibold))
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+                    .background(AppColors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Цвет").font(AppFont.footnote).foregroundStyle(AppColors.textSecondary)
+                        HStack(spacing: 14) {
+                            ForEach(viewModel.colors, id: \.self) { hex in
+                                Button { viewModel.selectColor(hex) } label: {
+                                    Circle()
+                                        .fill(Color(hex: hex))
+                                        .frame(width: 28, height: 28)
+                                        .padding(3)
+                                        .overlay(Circle().stroke(hex == viewModel.colorHex ? Color(hex: hex) : .clear, lineWidth: 2))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        Divider().overlay(AppColors.separator).padding(.vertical, 2)
+                        Text("Иконка").font(AppFont.footnote).foregroundStyle(AppColors.textSecondary)
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 5), spacing: 10) {
+                            ForEach(viewModel.symbols, id: \.self) { symbol in
+                                let isSelected = symbol == viewModel.symbolName
+                                Button { viewModel.selectSymbol(symbol) } label: {
+                                    Image(systemName: symbol)
+                                        .font(.system(size: 18))
+                                        .foregroundStyle(isSelected ? tint : AppColors.textTertiary)
+                                        .frame(width: 40, height: 40)
+                                        .background(isSelected ? tint.opacity(0.12) : .clear,
+                                                    in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                    .padding(16)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(AppColors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                    if viewModel.canDelete {
+                        Button("Удалить категорию", role: .destructive, action: viewModel.requestDelete)
+                            .font(.system(size: 17))
+                            .foregroundStyle(AppColors.danger)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(AppColors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 4)
+                .padding(.bottom, 40)
+            }
+        }
+        .background(AppColors.background.ignoresSafeArea())
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+        .confirmationDialog("Удалить «\(viewModel.name)»?", isPresented: $viewModel.isDeleteConfirmationPresented,
+                            titleVisibility: .visible) {
+            Button("Удалить", role: .destructive, action: viewModel.confirmDelete)
+        } message: {
+            Text(viewModel.deleteMessage)
+        }
+        .onChange(of: viewModel.isFinished) { _, finished in
+            if finished { dismiss() }
         }
     }
 }

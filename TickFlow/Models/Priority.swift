@@ -19,13 +19,29 @@ enum Priority: Int, CaseIterable, Identifiable, Codable {
         }
     }
 
+    /// Подпись в меню редактора.
+    var menuTitle: String {
+        switch self {
+        case .none: "Без приоритета"
+        case .low: "Низкий приоритет"
+        case .medium: "Средний приоритет"
+        case .high: "Высокий приоритет"
+        }
+    }
+
+    /// Цвета флажка из макета.
     var color: Color {
         switch self {
-        case .none: .secondary
-        case .low: .blue
-        case .medium: .orange
-        case .high: .red
+        case .none: Color(hex: "#AEAEB2")
+        case .low: Color(hex: "#5B5BD6")
+        case .medium: Color(hex: "#CF8526")
+        case .high: Color(hex: "#D93D42")
         }
+    }
+
+    /// "!", "!!", "!!!" перед названием задачи в списке.
+    var marks: String {
+        String(repeating: "!", count: rawValue)
     }
 
     var symbolName: String {

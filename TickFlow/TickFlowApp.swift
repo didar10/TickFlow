@@ -7,7 +7,7 @@ struct TickFlowApp: App {
 
     init() {
         do {
-            let container = try ModelContainer(for: TaskList.self, TaskItem.self, Subtask.self)
+            let container = try ModelContainer(for: Schema(AppDependencies.modelTypes))
             _dependencies = State(initialValue: AppDependencies(container: container))
         } catch {
             fatalError("Не удалось создать ModelContainer: \(error)")
