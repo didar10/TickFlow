@@ -1,32 +1,31 @@
-import SwiftData
 import SwiftUI
 
 /// Корневой экран: смарт-подборки сверху, пользовательские списки снизу.
 struct HomeView: View {
-    @Environment(\.modelContext) private var context
+    @Environment(AppDependencies.self) private var dependencies
+    @State private var viewModel: HomeViewModel
 
-    @Query(sort: \TaskList.sortOrder) private var lists: [TaskList]
-    @Query private var allTasks: [TaskItem]
-
-    @State private var isCreatingList = false
-    @State private var listBeingEdited: TaskList?
-
-    private let smartFilters: [TaskFilter] = [.today, .upcoming, .all, .completed]
+    init(viewModel: HomeViewModel) {
+        _viewModel = State(initialValue: viewModel)
+    }
 
     var body: some View {
+        @Bindable var viewModel = viewModel
+
         NavigationStack {
             List {
                 Section {
-                    ForEach(smartFilters, id: \.self) { filter in
+                    ForEach(viewModel.smartFilters, id: \.self) { filter in
                         NavigationLink(value: filter) {
                             Label(filter.defaultTitle, systemImage: filter.symbolName)
-                                .badge(count(for: filter))
+                                .badge(viewModel.count(for: filter))
                         }
+                        .listRowBackground(AppColors.surface)
                     }
                 }
 
                 Section("Списки") {
-                    ForEach(lists) { list in
+                    ForEach(viewModel.lists) { list in
                         NavigationLink(value: TaskFilter.list(list.id)) {
                             Label {
                                 Text(list.name)
@@ -36,15 +35,16 @@ struct HomeView: View {
                             }
                             .badge(list.activeCount)
                         }
+                        .listRowBackground(AppColors.surface)
                         .swipeActions(edge: .trailing) {
                             Button(role: .destructive) {
-                                delete(list)
+                                viewModel.delete(list)
                             } label: {
                                 Label("Удалить", systemImage: "trash")
                             }
 
                             Button {
-                                listBeingEdited = list
+                                viewModel.listBeingEdited = list
                             } label: {
                                 Label("Изменить", systemImage: "pencil")
                             }
@@ -53,38 +53,30 @@ struct HomeView: View {
                     }
 
                     Button {
-                        isCreatingList = true
+                        viewModel.isCreatingList = true
                     } label: {
                         Label("Новый список", systemImage: "plus")
                     }
+                    .listRowBackground(AppColors.surface)
                 }
             }
+            .screenBackground()
             .navigationTitle("TickFlow")
             .navigationDestination(for: TaskFilter.self) { filter in
-                TaskListView(filter: filter)
+                TaskListView(viewModel: dependencies.makeTaskListViewModel(filter: filter))
             }
-            .sheet(isPresented: $isCreatingList) {
-                ListEditorView(list: nil)
+            .sheet(isPresented: $viewModel.isCreatingList) {
+                ListEditorView(viewModel: dependencies.makeListEditorViewModel(list: nil))
             }
-            .sheet(item: $listBeingEdited) { list in
-                ListEditorView(list: list)
+            .sheet(item: $viewModel.listBeingEdited) { list in
+                ListEditorView(viewModel: dependencies.makeListEditorViewModel(list: list))
             }
         }
-    }
-
-    private func count(for filter: TaskFilter) -> Int {
-        guard filter != .completed else { return 0 }
-        return allTasks.filter { filter.matches($0) }.count
-    }
-
-    private func delete(_ list: TaskList) {
-        list.tasks.forEach { NotificationScheduler.cancel(taskID: $0.id) }
-        context.delete(list)
-        try? context.save()
     }
 }
 
 #Preview {
-    HomeView()
-        .modelContainer(for: [TaskList.self, TaskItem.self, Subtask.self], inMemory: true)
+    let dependencies = AppDependencies.preview()
+    HomeView(viewModel: dependencies.makeHomeViewModel())
+        .environment(dependencies)
 }

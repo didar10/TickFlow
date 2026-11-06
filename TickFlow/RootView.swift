@@ -1,29 +1,28 @@
-import SwiftData
 import SwiftUI
 
 struct RootView: View {
-    @Environment(\.modelContext) private var context
+    let dependencies: AppDependencies
 
     var body: some View {
         TabView {
             Tab("Задачи", systemImage: "checklist") {
-                HomeView()
+                HomeView(viewModel: dependencies.makeHomeViewModel())
             }
             Tab("Календарь", systemImage: "calendar") {
-                CalendarView()
+                CalendarView(viewModel: dependencies.makeCalendarViewModel())
             }
             Tab("Поиск", systemImage: "magnifyingglass") {
-                SearchView()
+                SearchView(viewModel: dependencies.makeSearchViewModel())
             }
         }
         .task {
-            SeedService.seedIfNeeded(context: context)
-            await NotificationScheduler.requestAuthorization()
+            await dependencies.bootstrap()
         }
     }
 }
 
 #Preview {
-    RootView()
-        .modelContainer(for: [TaskList.self, TaskItem.self, Subtask.self], inMemory: true)
+    let dependencies = AppDependencies.preview()
+    RootView(dependencies: dependencies)
+        .environment(dependencies)
 }

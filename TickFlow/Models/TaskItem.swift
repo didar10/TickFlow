@@ -11,6 +11,8 @@ final class TaskItem {
     /// Дата выполнения. Если `hasTime == false`, хранится начало дня.
     var dueDate: Date?
     var hasTime: Bool = false
+    /// Длительность в минутах. Имеет смысл только при `hasTime == true`.
+    var durationMinutes: Int = 60
     var priorityRaw: Int = 0
     var sortOrder: Int = 0
     var createdAt: Date = Date.now
@@ -25,6 +27,7 @@ final class TaskItem {
         notes: String = "",
         dueDate: Date? = nil,
         hasTime: Bool = false,
+        durationMinutes: Int = 60,
         priority: Priority = .none,
         list: TaskList? = nil,
         sortOrder: Int = 0
@@ -34,6 +37,7 @@ final class TaskItem {
         self.notes = notes
         self.dueDate = dueDate
         self.hasTime = hasTime
+        self.durationMinutes = durationMinutes
         self.priorityRaw = priority.rawValue
         self.list = list
         self.sortOrder = sortOrder
@@ -49,6 +53,11 @@ final class TaskItem {
         subtasks.sorted { $0.sortOrder < $1.sortOrder }
     }
 
+    var endDate: Date? {
+        guard let dueDate, hasTime else { return nil }
+        return dueDate.addingTimeInterval(TimeInterval(durationMinutes * 60))
+    }
+
     var isOverdue: Bool {
         guard let dueDate, !isCompleted else { return false }
         return hasTime ? dueDate < .now : dueDate < Calendar.current.startOfDay(for: .now)
@@ -60,13 +69,27 @@ final class TaskItem {
         return dueDate
     }
 
+    var completedSubtaskCount: Int {
+        subtasks.filter(\.isCompleted).count
+    }
+
     func setCompleted(_ value: Bool) {
         isCompleted = value
         completedAt = value ? .now : nil
-        if value {
-            NotificationScheduler.cancel(taskID: id)
+    }
+
+    /// Переносит на сегодня, сохраняя время, если оно указано.
+    func moveToToday(calendar: Calendar = .current) {
+        if hasTime, let dueDate {
+            let components = calendar.dateComponents([.hour, .minute], from: dueDate)
+            self.dueDate = calendar.date(
+                bySettingHour: components.hour ?? 9,
+                minute: components.minute ?? 0,
+                second: 0,
+                of: .now
+            )
         } else {
-            NotificationScheduler.reschedule(id: id, title: title, fireDate: reminderDate)
+            dueDate = calendar.startOfDay(for: .now)
         }
     }
 }

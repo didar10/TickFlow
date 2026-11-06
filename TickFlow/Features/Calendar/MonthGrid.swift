@@ -3,6 +3,8 @@ import SwiftUI
 /// Сетка месяца. Дни за пределами месяца приглушены, под числом — индикатор задач.
 struct MonthGrid: View {
     let month: Date
+    let days: [Date]
+    let weekdaySymbols: [String]
     @Binding var selectedDate: Date
     /// Количество незавершённых задач по дням (ключ — начало дня).
     let taskCounts: [Date: Int]
@@ -36,11 +38,17 @@ struct MonthGrid: View {
         let inMonth = calendar.isDate(day, equalTo: month, toGranularity: .month)
         let count = taskCounts[calendar.startOfDay(for: day)] ?? 0
 
-        VStack(spacing: 3) {
+        VStack(spacing: 2) {
             Text(day.formatted(.dateTime.day()))
                 .font(.callout)
-                .fontWeight(isToday ? .bold : .regular)
+                .fontWeight(isSelected || isToday ? .semibold : .regular)
                 .foregroundStyle(foreground(isSelected: isSelected, isToday: isToday, inMonth: inMonth))
+                .frame(width: 32, height: 32)
+                .background {
+                    if isSelected {
+                        Circle().fill(Color.accentColor)
+                    }
+                }
 
             Circle()
                 .fill(count > 0 ? Color.accentColor : Color.clear)
@@ -49,12 +57,6 @@ struct MonthGrid: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: 44)
-        .background {
-            if isSelected {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.accentColor.opacity(0.18))
-            }
-        }
         .contentShape(Rectangle())
         .onTapGesture {
             selectedDate = calendar.startOfDay(for: day)
@@ -62,35 +64,9 @@ struct MonthGrid: View {
     }
 
     private func foreground(isSelected: Bool, isToday: Bool, inMonth: Bool) -> Color {
+        if isSelected { return .white }
         if isToday { return .accentColor }
         if !inMonth { return .secondary.opacity(0.5) }
         return .primary
-    }
-
-    private var weekdaySymbols: [String] {
-        let symbols = calendar.shortStandaloneWeekdaySymbols
-        let shift = calendar.firstWeekday - 1
-        guard shift > 0, shift < symbols.count else { return symbols }
-        return Array(symbols[shift...] + symbols[..<shift])
-    }
-
-    private var days: [Date] {
-        guard
-            let monthInterval = calendar.dateInterval(of: .month, for: month),
-            let firstWeek = calendar.dateInterval(of: .weekOfMonth, for: monthInterval.start),
-            let lastWeek = calendar.dateInterval(
-                of: .weekOfMonth,
-                for: monthInterval.end.addingTimeInterval(-1)
-            )
-        else { return [] }
-
-        var result: [Date] = []
-        var current = firstWeek.start
-        while current < lastWeek.end {
-            result.append(current)
-            guard let next = calendar.date(byAdding: .day, value: 1, to: current) else { break }
-            current = next
-        }
-        return result
     }
 }

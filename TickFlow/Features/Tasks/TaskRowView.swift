@@ -1,5 +1,7 @@
 import SwiftUI
 
+/// Строка задачи: цветная полоса списка слева, срок снизу, список справа.
+/// Полоса идёт на всю высоту, поэтому строке нужны нулевые `listRowInsets`.
 struct TaskRowView: View {
     let task: TaskItem
     var showsListName: Bool = false
@@ -15,50 +17,52 @@ struct TaskRowView: View {
                     .strikethrough(task.isCompleted)
                     .foregroundStyle(task.isCompleted ? .secondary : .primary)
 
-                if !metadata.isEmpty {
-                    HStack(spacing: 10) {
-                        ForEach(metadata, id: \.self) { item in
-                            Text(item)
-                        }
-                    }
-                    .font(.caption)
-                    .foregroundStyle(task.isOverdue ? Color.red : .secondary)
+                if !task.notes.isEmpty {
+                    Text(task.notes)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
-            }
 
-            Spacer(minLength: 0)
-
-            if task.priority != .none {
-                Image(systemName: task.priority.symbolName)
-                    .font(.caption)
-                    .foregroundStyle(task.priority.color)
-            }
-
-            if let list = task.list, showsListName {
-                Circle()
-                    .fill(Color(hex: list.colorHex))
-                    .frame(width: 8, height: 8)
-                    .padding(.top, 6)
+                footer
             }
         }
-        .padding(.vertical, 2)
+        .padding(.leading, 16)
+        .padding(.trailing, 14)
+        .padding(.vertical, 11)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .overlay(alignment: .leading) {
+            AppColors.listColor(task.list)
+                .frame(width: 3)
+        }
     }
 
-    private var metadata: [String] {
-        var items: [String] = []
-        if let due = task.dueDate {
-            items.append(DateFormatting.dueLabel(for: due, hasTime: task.hasTime))
+    private var footer: some View {
+        HStack(spacing: 8) {
+            if let due = DateFormatting.dueRangeLabel(for: task) {
+                Text(due)
+                    .foregroundStyle(task.isOverdue ? Color.red : .secondary)
+            }
+
+            if task.reminderDate != nil {
+                Image(systemName: "bell")
+                    .foregroundStyle(.secondary)
+            }
+
+            if !task.subtasks.isEmpty {
+                Text("\(task.completedSubtaskCount)/\(task.subtasks.count)")
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 8)
+
+            if let list = task.list, showsListName {
+                Label(list.name, systemImage: list.symbolName)
+                    .labelStyle(.titleAndIcon)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
         }
-        if !task.subtasks.isEmpty {
-            let done = task.subtasks.filter(\.isCompleted).count
-            items.append("\(done)/\(task.subtasks.count)")
-        }
-        if let list = task.list, showsListName {
-            items.append(list.name)
-        }
-        if !task.notes.isEmpty {
-            items.append("Заметка")
-        }
-        return items
+        .font(.footnote)
     }
 }
