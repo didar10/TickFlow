@@ -1,20 +1,22 @@
 import SwiftUI
 
-/// Круглая кнопка создания задачи в правом нижнем углу экрана.
+/// Круглая кнопка создания в правом нижнем углу экрана.
 struct FloatingAddButton: View {
+    var accessibilityLabel = "Новая задача"
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Image(systemName: "plus")
-                .font(.title2.weight(.medium))
+                .font(.system(size: 24, weight: .semibold))
                 .foregroundStyle(.white)
-                .frame(width: 44, height: 44)
+                .frame(width: 56, height: 56)
+                .background(AppColors.accent, in: Circle())
+                .shadow(color: AppColors.accent.opacity(0.35), radius: 10, y: 8)
         }
-        .buttonStyle(.glassProminent)
-        .buttonBorderShape(.circle)
-        .padding(.trailing, 20)
-        .padding(.bottom, 12)
-        .accessibilityLabel("Новая задача")
+        .buttonStyle(.plain)
+        .padding(.trailing, 18)
+        .padding(.bottom, 18)
+        .accessibilityLabel(accessibilityLabel)
     }
 }

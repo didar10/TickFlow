@@ -14,8 +14,15 @@ final class TaskItem {
     /// Длительность в минутах. Имеет смысл только при `hasTime == true`.
     var durationMinutes: Int = 60
     var priorityRaw: Int = 0
+    /// Последний день многодневной задачи (начало дня). `nil` — задача на один день.
+    var endDay: Date?
+    /// `ReminderOption`. По умолчанию «в момент начала» — так работали старые задачи.
+    var reminderRaw: Int = 1
+    /// `RepeatRule`.
+    var repeatRaw: Int = 0
     var sortOrder: Int = 0
     var createdAt: Date = Date.now
+    var updatedAt: Date = Date.now
 
     var list: TaskList?
 
@@ -42,11 +49,40 @@ final class TaskItem {
         self.list = list
         self.sortOrder = sortOrder
         self.createdAt = .now
+        self.updatedAt = .now
     }
 
     var priority: Priority {
         get { Priority(rawValue: priorityRaw) ?? .none }
         set { priorityRaw = newValue.rawValue }
+    }
+
+    var reminder: ReminderOption {
+        get { ReminderOption(rawValue: reminderRaw) ?? .none }
+        set { reminderRaw = newValue.rawValue }
+    }
+
+    var repeatRule: RepeatRule {
+        get { RepeatRule(rawValue: repeatRaw) ?? .never }
+        set { repeatRaw = newValue.rawValue }
+    }
+
+    var isMultiDay: Bool {
+        guard let dueDate, let endDay else { return false }
+        return !Calendar.current.isDate(dueDate, inSameDayAs: endDay)
+    }
+
+    /// Последний день задачи: `endDay` для многодневной, иначе день `dueDate`.
+    var lastDay: Date? {
+        guard let dueDate else { return nil }
+        return Calendar.current.startOfDay(for: endDay ?? dueDate)
+    }
+
+    /// Попадает ли задача на день (учитывая многодневные).
+    func occurs(on day: Date, calendar: Calendar = .current) -> Bool {
+        guard let dueDate, let lastDay else { return false }
+        let target = calendar.startOfDay(for: day)
+        return calendar.startOfDay(for: dueDate) <= target && target <= lastDay
     }
 
     var sortedSubtasks: [Subtask] {
@@ -58,15 +94,17 @@ final class TaskItem {
         return dueDate.addingTimeInterval(TimeInterval(durationMinutes * 60))
     }
 
+    /// Просрочена: последний день задачи уже прошёл. Сегодняшние задачи не считаются просроченными.
     var isOverdue: Bool {
-        guard let dueDate, !isCompleted else { return false }
-        return hasTime ? dueDate < .now : dueDate < Calendar.current.startOfDay(for: .now)
+        guard !isCompleted, let lastDay else { return false }
+        return lastDay < Calendar.current.startOfDay(for: .now)
     }
 
-    /// Момент срабатывания напоминания — только для задач со временем.
+    /// Момент срабатывания напоминания: только для задач со временем и выбранным напоминанием.
     var reminderDate: Date? {
-        guard let dueDate, hasTime, !isCompleted, dueDate > .now else { return nil }
-        return dueDate
+        guard let dueDate, hasTime, !isCompleted, let offset = reminder.offset else { return nil }
+        let fire = dueDate.addingTimeInterval(offset)
+        return fire > .now ? fire : nil
     }
 
     var completedSubtaskCount: Int {
@@ -91,5 +129,6 @@ final class TaskItem {
         } else {
             dueDate = calendar.startOfDay(for: .now)
         }
+        endDay = nil
     }
 }
