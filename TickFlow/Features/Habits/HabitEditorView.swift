@@ -22,7 +22,7 @@ struct HabitEditorView: View {
                     trackingCard
                     reminderCard
                     if !viewModel.isNew {
-                        Button("Удалить привычку", role: .destructive, action: viewModel.requestDelete)
+                        Button(L10n.HabitEditor.delete, role: .destructive, action: viewModel.requestDelete)
                             .font(.system(size: 17))
                             .foregroundStyle(AppColors.danger)
                             .frame(maxWidth: .infinity)
@@ -42,13 +42,13 @@ struct HabitEditorView: View {
         .presentationCornerRadius(14)
         .interactiveDismissDisabled(!viewModel.name.isEmpty)
         .confirmationDialog(
-            "Удалить «\(viewModel.name)»?",
+            L10n.Common.deleteNamed(viewModel.name),
             isPresented: $viewModel.isDeleteConfirmationPresented,
             titleVisibility: .visible
         ) {
-            Button("Удалить", role: .destructive, action: viewModel.confirmDelete)
+            Button(L10n.Common.delete, role: .destructive, action: viewModel.confirmDelete)
         } message: {
-            Text("История отметок тоже будет удалена.")
+            Text(L10n.HabitEditor.deleteMessage)
         }
         .onChange(of: viewModel.isFinished) { _, finished in
             if finished { dismiss() }
@@ -58,7 +58,7 @@ struct HabitEditorView: View {
 
     private var header: some View {
         HStack {
-            Button("Отмена") { dismiss() }
+            Button(L10n.Common.cancel) { dismiss() }
             Spacer()
             Text(viewModel.title)
                 .font(AppFont.headline)
@@ -79,7 +79,7 @@ struct HabitEditorView: View {
 
     private var suggestions: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Подсказки")
+            Text(L10n.HabitEditor.suggestions)
                 .font(AppFont.footnote)
                 .foregroundStyle(AppColors.textSecondary)
                 .padding(.horizontal, 4)
@@ -105,7 +105,7 @@ struct HabitEditorView: View {
 
         return HStack(spacing: 12) {
             HabitIcon(symbol: viewModel.symbolName, colorHex: viewModel.colorHex, size: 42)
-            TextField("Название привычки", text: $viewModel.name)
+            TextField(L10n.HabitEditor.namePlaceholder, text: $viewModel.name)
                 .font(.system(size: 20, weight: .semibold))
                 .focused($isNameFocused)
                 .submitLabel(.done)
@@ -119,7 +119,7 @@ struct HabitEditorView: View {
         let tint = Color(hex: viewModel.colorHex)
 
         return EditorCard {
-            EditorSection(title: "Иконка") {
+            EditorSection(title: L10n.Lists.icon) {
                 HStack {
                     ForEach(viewModel.symbols, id: \.self) { symbol in
                         let isSelected = symbol == viewModel.symbolName
@@ -137,7 +137,7 @@ struct HabitEditorView: View {
                 }
             }
             EditorDivider()
-            EditorSection(title: "Цвет") {
+            EditorSection(title: L10n.Lists.color) {
                 HStack(spacing: 14) {
                     ForEach(viewModel.colors, id: \.self) { hex in
                         let isSelected = hex == viewModel.colorHex
@@ -160,14 +160,14 @@ struct HabitEditorView: View {
         let tint = Color(hex: viewModel.colorHex)
 
         return EditorCard {
-            EditorSection(title: "Отслеживание") {
+            EditorSection(title: L10n.HabitEditor.tracking) {
                 SegmentedPicker(options: viewModel.kindOptions, selection: $viewModel.kindSelection,
                                 background: AppColors.fillSecondary)
             }
             if viewModel.isMeasurable {
                 EditorDivider()
                 HStack {
-                    Text("Цель на день").font(AppFont.body).foregroundStyle(AppColors.label)
+                    Text(L10n.HabitEditor.dailyGoal).font(AppFont.body).foregroundStyle(AppColors.label)
                     Spacer()
                     StepperPill(value: viewModel.targetLabel, decrement: viewModel.decrementTarget,
                                 increment: viewModel.incrementTarget)
@@ -177,7 +177,7 @@ struct HabitEditorView: View {
             }
             if viewModel.isAmount {
                 EditorDivider()
-                EditorSection(title: "Единица") {
+                EditorSection(title: L10n.HabitEditor.unit) {
                     HStack(spacing: 6) {
                         ForEach(HabitEditorViewModel.units, id: \.self) { unit in
                             Chip(title: unit, isSelected: unit == viewModel.unit) { viewModel.selectUnit(unit) }
@@ -186,7 +186,7 @@ struct HabitEditorView: View {
                 }
             }
             EditorDivider()
-            EditorSection(title: "Частота") {
+            EditorSection(title: L10n.HabitDetail.frequency) {
                 SegmentedPicker(options: viewModel.frequencyOptions, selection: $viewModel.frequency,
                                 background: AppColors.fillSecondary)
                 if viewModel.isSpecificDays {
@@ -206,7 +206,7 @@ struct HabitEditorView: View {
                 }
                 if viewModel.isWeeklyGoal {
                     HStack {
-                        Text("Раз в неделю").font(AppFont.subheadline).foregroundStyle(AppColors.label)
+                        Text(L10n.HabitEditor.timesPerWeek).font(AppFont.subheadline).foregroundStyle(AppColors.label)
                         Spacer()
                         StepperPill(value: viewModel.timesPerWeekLabel, minWidth: 40,
                                     decrement: viewModel.decrementTimesPerWeek,
@@ -221,7 +221,7 @@ struct HabitEditorView: View {
         @Bindable var viewModel = viewModel
 
         return EditorCard {
-            Toggle("Напоминание", isOn: $viewModel.reminderEnabled)
+            Toggle(L10n.Common.reminder, isOn: $viewModel.reminderEnabled)
                 .font(AppFont.body)
                 .tint(AppColors.accent)
                 .padding(.horizontal, 16)
@@ -229,7 +229,7 @@ struct HabitEditorView: View {
                 .padding(.vertical, 2)
             if viewModel.reminderEnabled {
                 HStack {
-                    Text("Время").font(AppFont.subheadline).foregroundStyle(AppColors.textSecondary)
+                    Text(L10n.Common.time).font(AppFont.subheadline).foregroundStyle(AppColors.textSecondary)
                     Spacer()
                     StepperPill(value: viewModel.reminderLabel, minWidth: 80,
                                 decrement: viewModel.decrementReminder,
@@ -241,7 +241,7 @@ struct HabitEditorView: View {
             }
             EditorDivider()
             HStack {
-                Text("Начало").foregroundStyle(AppColors.label)
+                Text(L10n.Common.start).foregroundStyle(AppColors.label)
                 Spacer()
                 Text(viewModel.startLabel).foregroundStyle(AppColors.textSecondary)
             }

@@ -127,7 +127,7 @@ final class CalendarViewModel {
     }
 
     var modeOptions: [(value: CalendarMode, title: String)] {
-        [(.day, "День"), (.threeDay, "3 дня"), (.week, "Неделя"), (.month, "Месяц")]
+        [(.day, L10n.Calendar.day), (.threeDay, L10n.Calendar.threeDays), (.week, L10n.Calendar.week), (.month, L10n.Calendar.month)]
     }
 
     var isFilterActive: Bool { filter.isActive }
@@ -140,9 +140,16 @@ final class CalendarViewModel {
     }
 
     /// Свайп по шапке: влево — вперёд.
-    func swipe(dx: CGFloat) {
-        guard abs(dx) > 50 else { return }
-        shift(by: dx < 0 ? 1 : -1)
+    /// Горизонтальный свайп листает период: месяц — на месяц, «День» — на неделю,
+    /// остальные виды — на свою длину. Вертикальные жесты (прокрутка) игнорируются.
+    func swipe(dx: CGFloat, dy: CGFloat = 0) {
+        guard abs(dx) > 50, abs(dx) > abs(dy) * 1.5 else { return }
+        let direction = dx < 0 ? 1 : -1
+        if mode == .day {
+            selectedDate = calendar.date(byAdding: .day, value: direction * 7, to: selectedDate) ?? selectedDate
+        } else {
+            shift(by: direction)
+        }
     }
 
     func select(_ day: Date) {
@@ -188,7 +195,7 @@ final class CalendarViewModel {
     }
 
     var dayLabel: String {
-        format.fullDay(selectedDate) + (calendar.isDateInToday(selectedDate) ? " · Сегодня" : "")
+        format.fullDay(selectedDate) + (calendar.isDateInToday(selectedDate) ? L10n.Common.todaySuffix : "")
     }
 
     func isToday(_ index: Int) -> Bool {
@@ -304,12 +311,12 @@ final class CalendarViewModel {
         if !span.isTimed {
             if calendar.isDate(span.day, inSameDayAs: span.lastDay) { return format.weekdayAndDay(span.day) }
             let days = (calendar.dateComponents([.day], from: span.day, to: span.lastDay).day ?? 0) + 1
-            return format.shortRange(span.day, span.lastDay) + " · \(days) дн."
+            return format.shortRange(span.day, span.lastDay) + " · " + L10n.Format.daysShort(days)
         }
         let weekday = mode == .day ? "" : format.shortWeekdays[weekdayIndex(of: span.day)] + "  "
         var text = weekday + format.time(minute: span.start) + " – " + format.time(minute: span.end)
             + " · " + format.duration(minutes: span.end - span.start)
-        if conflict(for: drag.taskID, span: span) != nil { text += " · Пересекается" }
+        if conflict(for: drag.taskID, span: span) != nil { text += L10n.Common.overlapsShort }
         return text
     }
 
@@ -331,7 +338,6 @@ final class CalendarViewModel {
     }
 
     func addFirstHabit() { navigator.openNewHabit() }
-    func openSettings() { navigator.openSettings() }
 
     /// Запрос «Создать первую задачу» из онбординга.
     var wantsNewTask: Bool { navigator.wantsNewTask }
@@ -382,7 +388,7 @@ final class CalendarViewModel {
     }
 
     var agendaTitle: String {
-        calendar.isDateInToday(selectedDate) ? "Сегодня" : format.fullDay(selectedDate)
+        calendar.isDateInToday(selectedDate) ? L10n.Common.today : format.fullDay(selectedDate)
     }
 
     var agenda: [CalendarItems.AgendaRow] {
@@ -404,7 +410,7 @@ final class CalendarViewModel {
 
     var agendaCount: String {
         let rows = agenda
-        return rows.isEmpty ? "" : "\(rows.filter(\.isCompleted).count) из \(rows.count) выполнено"
+        return rows.isEmpty ? "" : L10n.Common.doneOfTotal(rows.filter(\.isCompleted).count, rows.count)
     }
 
     // MARK: - Создание и действия
@@ -570,7 +576,7 @@ final class CalendarViewModel {
                     + " · " + format.duration(minutes: span.end - span.start)
             default:
                 let dayPart = calendar.isDate(span.day, inSameDayAs: original.day) ? "" : format.relativeDay(span.day) + ", "
-                message = "Перенесено на " + dayPart + format.time(minute: span.start)
+                message = L10n.Calendar.movedTo(dayPart + format.time(minute: span.start))
             }
         } else {
             let startShift = calendar.dateComponents([.day], from: original.day, to: span.day).day ?? 0
@@ -584,8 +590,8 @@ final class CalendarViewModel {
                 draft.durationMinutes = max(15, Int(newEnd.timeIntervalSince(newStart) / 60))
             }
             message = calendar.isDate(span.day, inSameDayAs: span.lastDay)
-                ? "Перенесено на " + format.weekdayAndDay(span.day)
-                : "Теперь " + format.shortRange(span.day, span.lastDay)
+                ? L10n.Calendar.movedTo(format.weekdayAndDay(span.day))
+                : L10n.Calendar.nowRange(format.shortRange(span.day, span.lastDay))
         }
 
         let change = PendingChange(taskID: task.id, draft: draft, message: message)
@@ -610,7 +616,7 @@ final class CalendarViewModel {
             let end = start.addingTimeInterval(TimeInterval(change.draft.durationMinutes * 60))
             message += ScheduleCommit.gapNote(start: start, end: end, excluding: task.id, in: taskRepository.tasks, calendar: calendar)
         }
-        if scope == .thisOccurrence { message += " (только это вхождение)" }
+        if scope == .thisOccurrence { message += L10n.Common.thisOccurrenceSuffix }
         toasts.show(message, undo: undo)
         flash(task.id)
     }
@@ -621,7 +627,7 @@ final class CalendarViewModel {
         guard let other = ConflictDetector.conflict(start: start, end: end, excluding: id, in: taskRepository.tasks),
               let otherStart = other.dueDate, let otherEnd = other.endDate
         else { return nil }
-        return "«\(draft.title)» пересекается с «\(other.title)» (\(format.time(otherStart)) – \(format.time(otherEnd)))."
+        return L10n.Common.overlapMessage(draft.title, other.title, format.time(otherStart), format.time(otherEnd))
     }
 
     private func conflict(for id: UUID, span: Span) -> TaskItem? {
@@ -680,9 +686,9 @@ final class CalendarViewModel {
         if task.isMultiDay, let due = task.dueDate, let last = task.lastDay {
             let index = (calendar.dateComponents([.day], from: calendar.startOfDay(for: due), to: day).day ?? 0) + 1
             let total = (calendar.dateComponents([.day], from: calendar.startOfDay(for: due), to: last).day ?? 0) + 1
-            return "День \(index) из \(total)"
+            return L10n.Calendar.dayOfTotal(index, total)
         }
-        guard task.hasTime, let due = task.dueDate, let end = task.endDate else { return "Весь день" }
+        guard task.hasTime, let due = task.dueDate, let end = task.endDate else { return L10n.Common.allDay }
         return format.time(due) + " – " + format.time(end)
     }
 }

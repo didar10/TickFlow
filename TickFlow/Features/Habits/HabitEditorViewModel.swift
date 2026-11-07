@@ -12,7 +12,7 @@ final class HabitEditorViewModel {
         let isOn: Bool
     }
 
-    static let units = ["раз", "л", "стр.", "стак."]
+    static let units = [L10n.Habits.unitTimes, L10n.Habits.unitLiters, L10n.Habits.unitPages, L10n.Habits.unitGlasses]
 
     var name: String
     private(set) var symbolName: String
@@ -54,7 +54,7 @@ final class HabitEditorViewModel {
             colorHex = habit.colorHex
             kind = habit.kind
             target = habit.target
-            unit = habit.kind == .amount ? habit.unit : "раз"
+            unit = habit.kind == .amount ? habit.unit : L10n.Habits.unitTimes
             frequency = habit.frequency
             weekdays = habit.frequency == .specificDays ? Set(habit.weekdays) : [2, 3, 4, 5, 6]
             timesPerWeek = habit.timesPerWeek
@@ -66,7 +66,7 @@ final class HabitEditorViewModel {
             colorHex = "#5B5BD6"
             kind = .check
             target = 1
-            unit = "раз"
+            unit = L10n.Habits.unitTimes
             frequency = .daily
             weekdays = [2, 3, 4, 5, 6]
             timesPerWeek = 3
@@ -82,8 +82,8 @@ final class HabitEditorViewModel {
     // MARK: - Шапка
 
     var isNew: Bool { habit == nil }
-    var title: String { isNew ? "Новая привычка" : "Изменить привычку" }
-    var saveTitle: String { isNew ? "Добавить" : "Сохранить" }
+    var title: String { isNew ? L10n.Habits.new : L10n.HabitEditor.edit }
+    var saveTitle: String { isNew ? L10n.Common.add : L10n.Common.save }
 
     var canSave: Bool {
         !trimmedName.isEmpty && (frequency != .specificDays || !weekdays.isEmpty)
@@ -125,7 +125,7 @@ final class HabitEditorViewModel {
         switch newKind {
         case .check: target = 1
         case .duration: target = 20
-        case .amount: target = unit == "л" ? 2 : 8
+        case .amount: target = unit == L10n.Habits.unitLiters ? 2 : 8
         }
     }
 
@@ -133,14 +133,14 @@ final class HabitEditorViewModel {
     var isAmount: Bool { kind == .amount }
 
     var targetLabel: String {
-        "\(text.value(target)) \(kind == .duration ? "мин" : unit)"
+        text.value(target) + " " + (kind == .duration ? L10n.Format.minutesUnit : unit)
     }
 
     private var step: Double {
         switch kind {
         case .check: 1
         case .duration: 5
-        case .amount: unit == "л" ? 0.25 : 1
+        case .amount: unit == L10n.Habits.unitLiters ? 0.25 : 1
         }
     }
 
@@ -150,7 +150,7 @@ final class HabitEditorViewModel {
     func selectUnit(_ newUnit: String) {
         guard newUnit != unit else { return }
         unit = newUnit
-        target = newUnit == "л" ? 2 : 8
+        target = newUnit == L10n.Habits.unitLiters ? 2 : 8
     }
 
     // MARK: - Частота
@@ -182,7 +182,7 @@ final class HabitEditorViewModel {
     func incrementReminder() { reminderMinute = (reminderMinute + 15) % 1440 }
 
     var startLabel: String {
-        guard let habit else { return "Сегодня" }
+        guard let habit else { return L10n.Common.today }
         return format.relativeDay(format.calendar.startOfDay(for: habit.startDate))
     }
 
@@ -196,7 +196,7 @@ final class HabitEditorViewModel {
             colorHex: colorHex,
             kind: kind,
             target: kind == .check ? 1 : target,
-            unit: kind == .duration ? "мин" : kind == .amount ? unit : "",
+            unit: kind == .duration ? L10n.Format.minutesUnit : kind == .amount ? unit : "",
             step: step,
             frequency: frequency,
             weekdays: Array(weekdays),
@@ -207,9 +207,9 @@ final class HabitEditorViewModel {
         let saved = repository.save(draft, to: habit)
         if isNew {
             navigator.selectedTab = .habits
-            toasts.show("Привычка добавлена · \(saved.name)") { [repository] in repository.delete(saved) }
+            toasts.show(L10n.HabitEditor.addedToast(saved.name)) { [repository] in repository.delete(saved) }
         } else {
-            toasts.show("Привычка обновлена")
+            toasts.show(L10n.HabitEditor.updated)
         }
         isFinished = true
     }
@@ -222,7 +222,7 @@ final class HabitEditorViewModel {
         guard let habit else { return }
         let name = habit.name
         repository.delete(habit)
-        toasts.show("Привычка «\(name)» удалена")
+        toasts.show(L10n.HabitEditor.deletedToast(name))
         isFinished = true
     }
 

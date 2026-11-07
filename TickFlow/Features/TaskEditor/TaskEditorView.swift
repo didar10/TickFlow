@@ -6,12 +6,18 @@ struct TaskEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: TaskEditorViewModel
     @FocusState private var focus: TaskEditorViewModel.Field?
-    @State private var quickHeight: CGFloat = 150
     private let container: TaskEditorViewModel.Mode
+    /// Закрытие панели быстрого создания. Полный экран закрывается через `dismiss`.
+    private let onClose: (() -> Void)?
 
-    init(viewModel: TaskEditorViewModel, container: TaskEditorViewModel.Mode) {
+    init(viewModel: TaskEditorViewModel, container: TaskEditorViewModel.Mode, onClose: (() -> Void)? = nil) {
         _viewModel = State(initialValue: viewModel)
         self.container = container
+        self.onClose = onClose
+    }
+
+    private func close() {
+        if let onClose { onClose() } else { dismiss() }
     }
 
     var body: some View {
@@ -21,10 +27,6 @@ struct TaskEditorView: View {
             switch container {
             case .quick:
                 quickLayout
-                    .presentationDetents([.height(quickHeight)])
-                    .presentationDragIndicator(.hidden)
-                    .presentationCornerRadius(16)
-                    .presentationBackground(AppColors.surface)
             case .full:
                 fullLayout
             }
@@ -33,43 +35,43 @@ struct TaskEditorView: View {
             DateTimePickerView(viewModel: picker, onCancel: viewModel.closePicker)
         }
         .alert(
-            "Пересечение по времени",
+            L10n.Common.timeConflict,
             isPresented: dialogBinding(.conflict(message: "")),
             presenting: viewModel.dialog
         ) { _ in
-            Button("Оставить обе", action: viewModel.confirmConflict)
-            Button("Отмена", role: .cancel, action: viewModel.cancelDialog)
+            Button(L10n.Common.keepBoth, action: viewModel.confirmConflict)
+            Button(L10n.Common.cancel, role: .cancel, action: viewModel.cancelDialog)
         } message: { dialog in
             if case .conflict(let message) = dialog { Text(message) }
         }
         .confirmationDialog(
-            "Повторяющаяся задача",
+            L10n.Common.recurringTask,
             isPresented: dialogBinding(.recurring(message: "")),
             titleVisibility: .visible,
             presenting: viewModel.dialog
         ) { _ in
-            Button("Только это вхождение") { viewModel.resolveRecurring(.thisOccurrence) }
-            Button("Это и следующие") { viewModel.resolveRecurring(.thisAndFollowing) }
-            Button("Отмена", role: .cancel, action: viewModel.cancelDialog)
+            Button(L10n.Common.thisOccurrence) { viewModel.resolveRecurring(.thisOccurrence) }
+            Button(L10n.Common.thisAndFollowing) { viewModel.resolveRecurring(.thisAndFollowing) }
+            Button(L10n.Common.cancel, role: .cancel, action: viewModel.cancelDialog)
         } message: { dialog in
             if case .recurring(let message) = dialog { Text(message) }
         }
         .confirmationDialog(
-            "Удалить задачу?",
+            L10n.Editor.deleteTaskQuestion,
             isPresented: dialogBinding(.delete),
             titleVisibility: .hidden
         ) {
-            Button("Удалить задачу", role: .destructive, action: viewModel.confirmDelete)
-            Button("Отмена", role: .cancel, action: viewModel.cancelDialog)
+            Button(L10n.Editor.deleteTask, role: .destructive, action: viewModel.confirmDelete)
+            Button(L10n.Common.cancel, role: .cancel, action: viewModel.cancelDialog)
         } message: {
-            Text("Задача и её подзадачи будут удалены. Сразу после этого можно отменить.")
+            Text(L10n.Editor.deleteTaskMessage)
         }
         .onChange(of: viewModel.isFinished) { _, finished in
-            if finished { dismiss() }
+            if finished { close() }
         }
         .onChange(of: viewModel.mode) { _, mode in
             // «Открыть во весь экран»: лист закрывается, полный экран откроет презентер.
-            if container == .quick, mode == .full { dismiss() }
+            if container == .quick, mode == .full { close() }
         }
         .onChange(of: viewModel.focusRequest, initial: true) { _, request in
             // Запрос фокуса обрабатывает только экран, который сейчас активен.
@@ -93,14 +95,14 @@ struct TaskEditorView: View {
         @Bindable var viewModel = viewModel
 
         return VStack(alignment: .leading, spacing: 6) {
-            TextField("Что нужно сделать?", text: $viewModel.title)
+            TextField(L10n.Editor.titlePlaceholder, text: $viewModel.title)
                 .font(.system(size: 17, weight: .medium))
                 .foregroundStyle(AppColors.label)
                 .focused($focus, equals: .title)
                 .submitLabel(.done)
                 .onSubmit(viewModel.submitTitle)
 
-            TextField("Описание", text: $viewModel.notes, axis: .vertical)
+            TextField(L10n.Editor.notesPlaceholder, text: $viewModel.notes, axis: .vertical)
                 .font(.system(size: 15))
                 .foregroundStyle(AppColors.labelSecondary)
                 .lineLimit(1...6)
@@ -121,7 +123,7 @@ struct TaskEditorView: View {
                     .padding(.horizontal, 4)
                 } else {
                     toolbarIcon("calendar", color: AppColors.textTertiary, action: viewModel.openPicker)
-                        .accessibilityLabel("Дата")
+                        .accessibilityLabel(L10n.Common.date)
                 }
 
                 priorityMenu(iconColor: viewModel.hasPriority ? viewModel.priority.color : AppColors.textTertiary)
@@ -129,11 +131,11 @@ struct TaskEditorView: View {
                     toolbarIconLabel("tag", color: viewModel.isCategoryExplicit ? Color(hex: viewModel.categoryColorHex) : AppColors.textTertiary)
                 }
                 Menu {
-                    Button("Открыть во весь экран", systemImage: "arrow.up.left.and.arrow.down.right", action: viewModel.openFullScreen)
+                    Button(L10n.Editor.openFullScreen, systemImage: "arrow.up.left.and.arrow.down.right", action: viewModel.openFullScreen)
                 } label: {
                     toolbarIconLabel("ellipsis", color: AppColors.textTertiary)
                 }
-                .accessibilityLabel("Ещё")
+                .accessibilityLabel(L10n.Common.more)
 
                 Spacer(minLength: 0)
 
@@ -146,7 +148,7 @@ struct TaskEditorView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(!viewModel.canSave)
-                .accessibilityLabel("Добавить")
+                .accessibilityLabel(L10n.Common.add)
             }
             .frame(height: 44)
             .padding(.horizontal, -8)
@@ -154,8 +156,6 @@ struct TaskEditorView: View {
         .padding(.horizontal, 16)
         .padding(.top, 16)
         .padding(.bottom, 6)
-        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { quickHeight = $0 }
-        .frame(maxHeight: .infinity, alignment: .top)
     }
 
     // MARK: - Полный экран
@@ -191,7 +191,7 @@ struct TaskEditorView: View {
                     }
                     .buttonStyle(.plain)
 
-                    TextField("Что нужно сделать?", text: $viewModel.title, axis: .vertical)
+                    TextField(L10n.Editor.titlePlaceholder, text: $viewModel.title, axis: .vertical)
                         .font(.system(size: 24, weight: .bold))
                         .foregroundStyle(AppColors.label)
                         .focused($focus, equals: .title)
@@ -203,7 +203,7 @@ struct TaskEditorView: View {
                             viewModel.submitTitle()
                         }
 
-                    TextField("Описание", text: $viewModel.notes, axis: .vertical)
+                    TextField(L10n.Editor.notesPlaceholder, text: $viewModel.notes, axis: .vertical)
                         .font(.system(size: 16))
                         .foregroundStyle(AppColors.labelSecondary)
                         .lineLimit(3...)
@@ -232,7 +232,7 @@ struct TaskEditorView: View {
                     .background(AppColors.fillSecondary, in: Circle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Назад")
+            .accessibilityLabel(L10n.Common.back)
 
             categoryMenu {
                 HStack(spacing: 7) {
@@ -258,14 +258,14 @@ struct TaskEditorView: View {
             Menu {
                 if viewModel.isEditing {
                     Button(
-                        viewModel.isCompleted ? "Отметить невыполненной" : "Отметить выполненной",
+                        viewModel.isCompleted ? L10n.Common.markUndone : L10n.Common.markDone,
                         systemImage: viewModel.isCompleted ? "circle" : "checkmark.circle",
                         action: viewModel.toggleCompleted
                     )
-                    Button("Дублировать", systemImage: "plus.square.on.square", action: viewModel.duplicate)
-                    Button("Удалить", systemImage: "trash", role: .destructive, action: viewModel.requestDelete)
+                    Button(L10n.Editor.duplicate, systemImage: "plus.square.on.square", action: viewModel.duplicate)
+                    Button(L10n.Common.delete, systemImage: "trash", role: .destructive, action: viewModel.requestDelete)
                 } else {
-                    Button("Удалить черновик", systemImage: "trash", role: .destructive, action: viewModel.discard)
+                    Button(L10n.Editor.discardDraft, systemImage: "trash", role: .destructive, action: viewModel.discard)
                 }
             } label: {
                 Image(systemName: "ellipsis")
@@ -274,7 +274,7 @@ struct TaskEditorView: View {
                     .frame(width: 40, height: 40)
                     .background(AppColors.fillSecondary, in: Circle())
             }
-            .accessibilityLabel("Ещё")
+            .accessibilityLabel(L10n.Common.more)
         }
         .padding(.horizontal, 16)
         .padding(.top, 14)
@@ -287,7 +287,7 @@ struct TaskEditorView: View {
         return VStack(alignment: .leading, spacing: 0) {
             Divider().overlay(AppColors.separator)
             HStack(alignment: .firstTextBaseline) {
-                Text("ПОДЗАДАЧИ")
+                Text(L10n.Editor.subtasksHeader)
                     .font(.system(size: 13, weight: .semibold))
                     .tracking(0.3)
                     .foregroundStyle(AppColors.textSecondary)
@@ -318,7 +318,7 @@ struct TaskEditorView: View {
                             .frame(width: 28, height: 28)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Удалить подзадачу")
+                    .accessibilityLabel(L10n.Editor.deleteSubtask)
                 }
                 .frame(minHeight: 44)
                 .overlay(alignment: .bottom) { Divider().overlay(AppColors.hairline) }
@@ -329,12 +329,12 @@ struct TaskEditorView: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(AppColors.accent)
                     .frame(width: 20)
-                TextField("Добавить подзадачу", text: $viewModel.newSubtaskTitle)
+                TextField(L10n.Editor.addSubtask, text: $viewModel.newSubtaskTitle)
                     .font(AppFont.body)
                     .focused($focus, equals: .subtask)
                     .submitLabel(.next)
                     .onSubmit(viewModel.addSubtask)
-                Button("Добавить", action: viewModel.addSubtask)
+                Button(L10n.Common.add, action: viewModel.addSubtask)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(AppColors.accent)
                     .buttonStyle(.plain)
@@ -352,7 +352,7 @@ struct TaskEditorView: View {
                     toolbarIconLabel("tag", color: Color(hex: viewModel.categoryColorHex))
                 }
                 toolbarIcon("list.bullet", color: AppColors.label, action: viewModel.focusNewSubtask)
-                    .accessibilityLabel("Добавить подзадачу")
+                    .accessibilityLabel(L10n.Editor.addSubtask)
             }
             .padding(.horizontal, 6)
             .frame(height: 44)
@@ -373,7 +373,7 @@ struct TaskEditorView: View {
                         .shadow(color: AppColors.label.opacity(0.06), radius: 5, y: 2)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Скрыть клавиатуру")
+                .accessibilityLabel(L10n.Editor.hideKeyboard)
             }
         }
         .padding(.horizontal, 12)
@@ -398,7 +398,7 @@ struct TaskEditorView: View {
         } label: {
             label()
         }
-        .accessibilityLabel("Категория")
+        .accessibilityLabel(L10n.Common.category)
     }
 
     private func priorityMenu(iconColor: Color, filled: Bool = false) -> some View {
@@ -421,7 +421,7 @@ struct TaskEditorView: View {
                 toolbarIconLabel("flag", color: iconColor)
             }
         }
-        .accessibilityLabel("Приоритет")
+        .accessibilityLabel(L10n.Common.priority)
     }
 
     private func toolbarIcon(_ symbol: String, color: Color, action: @escaping () -> Void) -> some View {
@@ -462,20 +462,19 @@ private struct CompletionBox: View {
             .frame(width: 20, height: 20)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(isOn ? "Снять отметку" : "Отметить выполненной")
+        .accessibilityLabel(isOn ? L10n.Common.unmark : L10n.Common.markDone)
     }
 }
 
 // MARK: - Открытие редактора
 
-/// Показывает редактор: новую задачу — листом, существующую — во весь экран.
-/// При переходе из листа в полный экран ViewModel та же, поэтому черновик не теряется.
+/// Показывает редактор: новую задачу — панелью быстрого создания, существующую — во весь экран.
+/// При переходе из панели в полный экран ViewModel та же, поэтому черновик не теряется.
 private struct TaskEditorPresenter: ViewModifier {
     @Environment(AppDependencies.self) private var dependencies
     @Binding var request: TaskEditorRequest?
 
     @State private var editor: TaskEditorViewModel?
-    @State private var isQuickPresented = false
     @State private var isFullPresented = false
 
     func body(content: Content) -> some View {
@@ -484,19 +483,19 @@ private struct TaskEditorPresenter: ViewModifier {
                 guard let request, editor == nil else { return }
                 let created = dependencies.makeTaskEditorViewModel(request: request)
                 editor = created
-                isQuickPresented = created.mode == .quick
-                isFullPresented = created.mode == .full
-            }
-            .sheet(isPresented: $isQuickPresented, onDismiss: quickDismissed) {
-                if let editor { TaskEditorView(viewModel: editor, container: .quick) }
+                if created.mode == .quick {
+                    dependencies.quickEditorHost.show(created, onClose: quickClosed)
+                } else {
+                    isFullPresented = true
+                }
             }
             .fullScreenCover(isPresented: $isFullPresented, onDismiss: finish) {
                 if let editor { TaskEditorView(viewModel: editor, container: .full) }
             }
     }
 
-    /// Лист закрыт: либо задача сохранена или отброшена, либо выбран полный экран.
-    private func quickDismissed() {
+    /// Панель закрыта: либо задача сохранена или отброшена, либо выбран полный экран.
+    private func quickClosed() {
         if let editor, editor.mode == .full, !editor.isFinished {
             isFullPresented = true
         } else {

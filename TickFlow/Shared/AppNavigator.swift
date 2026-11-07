@@ -3,23 +3,23 @@ import Observation
 
 /// Вкладки приложения в порядке таб-бара.
 enum AppTab: Hashable, CaseIterable {
-    case calendar, tasks, habits, insights
+    case tasks, calendar, habits, profile
 
     var title: String {
         switch self {
-        case .calendar: "Календарь"
-        case .tasks: "Задачи"
-        case .habits: "Привычки"
-        case .insights: "Аналитика"
+        case .tasks: L10n.Tab.tasks
+        case .calendar: L10n.Tab.calendar
+        case .habits: L10n.Tab.habits
+        case .profile: L10n.Tab.profile
         }
     }
 
     var symbolName: String {
         switch self {
-        case .calendar: "calendar"
         case .tasks: "checklist"
+        case .calendar: "calendar"
         case .habits: "checkmark.circle"
-        case .insights: "chart.bar"
+        case .profile: "person.crop.circle"
         }
     }
 }
@@ -28,12 +28,11 @@ enum AppTab: Hashable, CaseIterable {
 @MainActor
 @Observable
 final class AppNavigator {
-    var selectedTab: AppTab = .calendar
+    var selectedTab: AppTab = .tasks
     /// Экран привычек откроет редактор новой привычки и сбросит флаг.
     var wantsNewHabit = false
     /// Календарь откроет создание задачи и сбросит флаг.
     var wantsNewTask = false
-    var isSettingsPresented = false
 
     func openNewHabit() {
         selectedTab = .habits
@@ -45,7 +44,8 @@ final class AppNavigator {
         wantsNewTask = true
     }
 
+    /// Настройки живут во вкладке «Профиль».
     func openSettings() {
-        isSettingsPresented = true
+        selectedTab = .profile
     }
 }

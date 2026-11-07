@@ -29,6 +29,6 @@ struct CheckCircle: View {
         .buttonStyle(.plain)
         .padding(-6)
         .animation(.snappy(duration: 0.2), value: isOn)
-        .accessibilityLabel(isOn ? "Снять отметку" : "Отметить выполненной")
+        .accessibilityLabel(isOn ? L10n.Common.unmark : L10n.Common.markDone)
     }
 }

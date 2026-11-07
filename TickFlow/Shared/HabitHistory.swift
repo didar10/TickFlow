@@ -17,13 +17,13 @@ enum HabitDayState: Equatable {
 
     var label: String {
         switch self {
-        case .done: "Выполнено"
-        case .skipped: "Пропущено. Серия сохранена"
-        case .missed: "Не выполнено. Ничего страшного, завтра новый день"
-        case .rest: "День отдыха. Не запланировано"
-        case .planned: "Запланировано"
-        case .today: "Запланировано на сегодня"
-        case .notStarted: "До начала привычки"
+        case .done: L10n.Common.completed
+        case .skipped: L10n.HabitState.skipped
+        case .missed: L10n.HabitState.missed
+        case .rest: L10n.HabitState.rest
+        case .planned: L10n.Common.planned
+        case .today: L10n.HabitState.today
+        case .notStarted: L10n.HabitState.notStarted
         }
     }
 }
@@ -194,20 +194,20 @@ struct HabitText {
     }
 
     func unit(of habit: Habit) -> String {
-        habit.kind == .duration ? "мин" : habit.unit
+        habit.kind == .duration ? L10n.Format.minutesUnit : habit.unit
     }
 
     /// "Каждый день", "По будням", "Пн, Ср, Пт", "3 раза в неделю".
     func schedule(of habit: Habit) -> String {
         switch habit.frequency {
         case .daily:
-            return "Каждый день"
+            return L10n.Common.everyDay
         case .weeklyGoal:
-            return "\(habit.timesPerWeek) \(Plural.times(habit.timesPerWeek)) в неделю"
+            return L10n.Habits.timesPerWeek(L10n.Plural.times(habit.timesPerWeek))
         case .specificDays:
             let days = Set(habit.weekdays)
-            if days == [2, 3, 4, 5, 6] { return "По будням" }
-            if days.count == 7 { return "Каждый день" }
+            if days == [2, 3, 4, 5, 6] { return L10n.Common.weekdays }
+            if days.count == 7 { return L10n.Common.everyDay }
             let symbols = format.calendar.shortStandaloneWeekdaySymbols.map(\.capitalizedFirst)
             return weekdayOrder.filter(days.contains).map { symbols[$0 - 1] }.joined(separator: ", ")
         }
@@ -215,12 +215,12 @@ struct HabitText {
 
     /// "Отметить выполнение", "20 мин в день".
     func target(of habit: Habit) -> String {
-        habit.kind == .check ? "Отметить выполнение" : "\(value(habit.target)) \(unit(of: habit)) в день"
+        habit.kind == .check ? L10n.Habits.markCompletion : L10n.Habits.perDay(value(habit.target), unit(of: habit))
     }
 
     func streak(_ stats: HabitStats, count: Int? = nil) -> String {
         let n = count ?? stats.current
-        return stats.isWeekly ? "\(n) нед." : "\(n) \(Plural.days(n))"
+        return stats.isWeekly ? L10n.Format.weeksShort(n) : L10n.Plural.days(n)
     }
 
     /// Дни недели (1 — вс … 7 — сб) в порядке первого дня недели из настроек.

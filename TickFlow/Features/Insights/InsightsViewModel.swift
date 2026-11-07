@@ -15,7 +15,7 @@ final class InsightsViewModel {
         let isGood: Bool
 
         /// Сравнивать не с чем: серый текст вместо зелёного или красного.
-        var isNeutral: Bool { delta == "Нет данных для сравнения" || delta == "Как в прошлом периоде" }
+        var isNeutral: Bool { delta == L10n.Insights.noComparison || delta == L10n.Insights.sameAsPrevious }
     }
 
     struct Bar: Identifiable {
@@ -70,10 +70,9 @@ final class InsightsViewModel {
     }
 
     var rangeOptions: [(value: Range, title: String)] {
-        [(.week, "Неделя"), (.month, "Месяц"), (.year, "Год")]
+        [(.week, L10n.Calendar.week), (.month, L10n.Calendar.month), (.year, L10n.Insights.year)]
     }
 
-    func openSettings() { navigator.openSettings() }
 
     var hasData: Bool { !tasks.tasks.isEmpty || !habits.habits.isEmpty }
     var hasHabits: Bool { !habits.habits.isEmpty }
@@ -89,16 +88,16 @@ final class InsightsViewModel {
         let current = TaskNumbers(tasks: all, interval: interval, today: today, calendar: calendar)
         let prior = TaskNumbers(tasks: all, interval: previous, today: today, calendar: calendar)
 
-        let noData = "Нет данных для сравнения"
+        let noData = L10n.Insights.noComparison
         let kpis: [Kpi] = [
-            Kpi(title: "Выполнено", value: number(current.completed),
+            Kpi(title: L10n.Common.completed, value: number(current.completed),
                 delta: percentDelta(current.completed, prior.completed, emptyText: noData), isGood: current.completed >= prior.completed),
-            Kpi(title: "Создано", value: number(current.created),
+            Kpi(title: L10n.Common.created, value: number(current.created),
                 delta: percentDelta(current.created, prior.created, emptyText: noData), isGood: current.created >= prior.created),
-            Kpi(title: "Выполнение", value: "\(current.rate)%",
+            Kpi(title: L10n.Insights.completionRate, value: "\(current.rate)%",
                 delta: prior.hasDue ? pointsDelta(current.rate, prior.rate) : noData,
                 isGood: !prior.hasDue || current.rate >= prior.rate),
-            Kpi(title: "Просрочено", value: number(current.overdue),
+            Kpi(title: L10n.Common.overdue, value: number(current.overdue),
                 delta: percentDelta(current.overdue, prior.overdue), isGood: current.overdue <= prior.overdue),
         ]
 
@@ -121,7 +120,7 @@ final class InsightsViewModel {
             return HabitRow(
                 id: habit.id,
                 name: habit.name,
-                detail: "\(percent(rate)) · серия \(text.streak(history.stats))",
+                detail: L10n.Insights.habitDetail(percent(rate), text.streak(history.stats)),
                 rate: rate,
                 colorHex: habit.colorHex
             )
@@ -131,12 +130,12 @@ final class InsightsViewModel {
         let elapsedEnd = min(interval.end, calendar.date(byAdding: .day, value: 1, to: today) ?? today)
         let days = max(1, calendar.dateComponents([.day], from: interval.start, to: elapsedEnd).day ?? 1)
         var facts: [Fact] = [
-            Fact(title: "Самый продуктивный день", value: bestWeekday ?? "—"),
-            Fact(title: "Пиковые часы", value: peak ?? "—"),
-            Fact(title: "В среднем за день", value: average(Double(current.completed) / Double(days))),
+            Fact(title: L10n.Insights.mostProductiveDay, value: bestWeekday ?? "—"),
+            Fact(title: L10n.Insights.peakHours, value: peak ?? "—"),
+            Fact(title: L10n.Insights.dailyAverage, value: average(Double(current.completed) / Double(days))),
         ]
         if !habits.habits.isEmpty {
-            facts.insert(Fact(title: "Привычки, прошлый период", value: prevRates.isEmpty ? "—" : percent(mean(prevRates))), at: 0)
+            facts.insert(Fact(title: L10n.Insights.habitsPreviousPeriod, value: prevRates.isEmpty ? "—" : percent(mean(prevRates))), at: 0)
         }
 
         return Report(
@@ -156,17 +155,17 @@ final class InsightsViewModel {
 
     private var periodTitle: String {
         switch range {
-        case .week: "Последние 7 дней"
-        case .month: "Последние 30 дней"
-        case .year: "Последние 12 месяцев"
+        case .week: L10n.Insights.last7Days
+        case .month: L10n.Insights.last30Days
+        case .year: L10n.Insights.last12Months
         }
     }
 
     private var chartTitle: String {
         switch range {
-        case .week: "По дням"
-        case .month: "По неделям"
-        case .year: "По месяцам"
+        case .week: L10n.Insights.byDay
+        case .month: L10n.Insights.byWeek
+        case .year: L10n.Insights.byMonth
         }
     }
 
@@ -258,18 +257,18 @@ final class InsightsViewModel {
 
     private func note(bars: [Bar], weekday: String?, peak: String?) -> String {
         guard let best = bars.first(where: \.isBest) else {
-            return "Пока мало данных. Отмечайте задачи выполненными — здесь появятся выводы."
+            return L10n.Insights.notEnoughData
         }
         var parts: [String] = []
         switch range {
         case .week:
-            if let weekday { parts.append("Самый продуктивный день — \(weekday.lowercased()): \(best.completed) \(Plural.tasks(best.completed)).") }
+            if let weekday { parts.append(L10n.Insights.noteBestWeekday(weekday.lowercased(), L10n.Plural.tasks(best.completed))) }
         case .month:
-            parts.append("Лучшая неделя — с \(best.title): \(best.completed) \(Plural.tasks(best.completed)).")
+            parts.append(L10n.Insights.noteBestWeek(best.title, L10n.Plural.tasks(best.completed)))
         case .year:
-            parts.append("Лучший месяц — \(best.title): \(best.completed) \(Plural.tasks(best.completed)).")
+            parts.append(L10n.Insights.noteBestMonth(best.title, L10n.Plural.tasks(best.completed)))
         }
-        if let peak { parts.append("Чаще всего задачи выполняются в \(peak).") }
+        if let peak { parts.append(L10n.Insights.notePeak(peak)) }
         return parts.joined(separator: " ")
     }
 
@@ -280,7 +279,7 @@ final class InsightsViewModel {
     // MARK: - Числа
 
     private func number(_ value: Int) -> String {
-        value.formatted(.number.locale(Locale(identifier: "ru_RU")))
+        value.formatted(.number.locale(DisplayFormatter.appLocale))
     }
 
     private func percent(_ fraction: Double) -> String {
@@ -288,7 +287,7 @@ final class InsightsViewModel {
     }
 
     private func average(_ value: Double) -> String {
-        value.formatted(.number.precision(.fractionLength(0...1)).locale(Locale(identifier: "ru_RU")))
+        value.formatted(.number.precision(.fractionLength(0...1)).locale(DisplayFormatter.appLocale))
     }
 
     private func mean(_ values: [Double]) -> Double {
@@ -297,16 +296,16 @@ final class InsightsViewModel {
 
     /// `emptyText` — что показать, если в прошлом периоде было ноль.
     private func percentDelta(_ current: Int, _ previous: Int, emptyText: String? = nil) -> String {
-        if current == previous { return "Как в прошлом периоде" }
-        guard previous > 0 else { return emptyText ?? "+\(current) к прошлому периоду" }
+        if current == previous { return L10n.Insights.sameAsPrevious }
+        guard previous > 0 else { return emptyText ?? L10n.Insights.deltaCount(current) }
         let change = Int((Double(current - previous) / Double(previous) * 100).rounded())
-        return (change > 0 ? "+" : "") + "\(change)% к прошлому периоду"
+        return L10n.Insights.deltaPercent((change > 0 ? "+" : "") + "\(change)")
     }
 
     private func pointsDelta(_ current: Int, _ previous: Int) -> String {
         let change = current - previous
-        if change == 0 { return "Как в прошлом периоде" }
-        return (change > 0 ? "+" : "") + "\(change) п.п. к прошлому"
+        if change == 0 { return L10n.Insights.sameAsPrevious }
+        return L10n.Insights.deltaPoints((change > 0 ? "+" : "") + "\(change)")
     }
 }
 

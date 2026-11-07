@@ -10,9 +10,9 @@ final class TaskFilterStore {
 
         var title: String {
             switch self {
-            case .all: "Все"
-            case .open: "Открытые"
-            case .completed: "Выполненные"
+            case .all: L10n.Common.all
+            case .open: L10n.Filter.open
+            case .completed: L10n.Filter.completed
             }
         }
     }

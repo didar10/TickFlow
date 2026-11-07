@@ -24,15 +24,20 @@ struct MonthGrid: View {
             }
 
             HStack(spacing: 14) {
-                legend(AppColors.accent, "Запланировано")
-                legend(AppColors.nowLine, "Просрочено")
-                legend(AppColors.doneDot, "Выполнено")
+                legend(AppColors.accent, L10n.Common.planned)
+                legend(AppColors.nowLine, L10n.Common.overdue)
+                legend(AppColors.doneDot, L10n.Common.completed)
             }
             .padding(.top, 4)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .background(AppColors.surface)
+        .contentShape(Rectangle())
+        // Свайп влево/вправо по сетке листает месяцы; вертикальная прокрутка не мешает.
+        .simultaneousGesture(DragGesture(minimumDistance: 20).onEnded {
+            viewModel.swipe(dx: $0.translation.width, dy: $0.translation.height)
+        })
     }
 
     private func legend(_ color: Color, _ title: String) -> some View {
@@ -56,7 +61,7 @@ private struct MonthCellView: View {
                     .frame(width: 32, height: 32)
                     .background {
                         if cell.isSelected {
-                            Circle().fill(cell.isToday ? AppColors.accent : AppColors.label)
+                            Circle().fill(cell.isToday ? AppColors.accent : AppColors.inverse)
                         }
                     }
                 HStack(spacing: 2) {

@@ -62,7 +62,7 @@ final class SettingsViewModel {
 
     // MARK: - Календарь
 
-    var weekdayOptions: [(value: Int, title: String)] { [(2, "Понедельник"), (1, "Воскресенье")] }
+    var weekdayOptions: [(value: Int, title: String)] { [(2, L10n.Common.monday), (1, L10n.Common.sunday)] }
 
     var firstWeekday: Int {
         get { current.firstWeekday }
@@ -70,7 +70,7 @@ final class SettingsViewModel {
     }
 
     var calendarModeOptions: [(value: CalendarMode, title: String)] {
-        [(.day, "День"), (.threeDay, "3 дня"), (.week, "Неделя"), (.month, "Месяц")]
+        [(.day, L10n.Calendar.day), (.threeDay, L10n.Calendar.threeDays), (.week, L10n.Calendar.week), (.month, L10n.Calendar.month)]
     }
 
     var defaultCalendarMode: CalendarMode {
@@ -143,7 +143,7 @@ final class SettingsViewModel {
     var categories: [CategoryRow] {
         lists.lists.map { list in
             let count = list.tasks.count
-            return CategoryRow(id: list.id, name: list.name, colorHex: list.colorHex, count: "\(count) \(Plural.tasks(count))")
+            return CategoryRow(id: list.id, name: list.name, colorHex: list.colorHex, count: L10n.Plural.tasks(count))
         }
     }
 
@@ -182,7 +182,7 @@ final class SettingsViewModel {
 
     func confirmLoadSample() {
         loadSampleData()
-        toasts.show("Пример данных загружен")
+        toasts.show(L10n.Profile.sampleLoaded)
     }
 
     // MARK: - О приложении
@@ -194,14 +194,10 @@ final class SettingsViewModel {
         return "\(version) (\(build))"
     }
 
-    /// Настройки закрываются, и после этого показывается знакомство.
+    /// Показывает знакомство заново; после него приложение открывается на вкладке «Задачи».
     func replayOnboarding() {
-        navigator.isSettingsPresented = false
-        let settings = settings
-        Task {
-            try? await Task.sleep(for: .milliseconds(500))
-            settings.update { $0.hasCompletedOnboarding = false }
-        }
+        navigator.selectedTab = .tasks
+        settings.update { $0.hasCompletedOnboarding = false }
     }
 
     /// Системные настройки приложения — включить уведомления.

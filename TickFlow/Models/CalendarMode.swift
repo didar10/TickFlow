@@ -11,10 +11,10 @@ enum CalendarMode: String, CaseIterable, Identifiable, Codable {
 
     var title: String {
         switch self {
-        case .month: "Месяц"
-        case .day: "День"
-        case .threeDay: "3 дня"
-        case .week: "Неделя"
+        case .month: L10n.Calendar.month
+        case .day: L10n.Calendar.day
+        case .threeDay: L10n.Calendar.threeDays
+        case .week: L10n.Calendar.week
         }
     }
 

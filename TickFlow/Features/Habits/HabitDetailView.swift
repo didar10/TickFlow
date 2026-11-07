@@ -43,7 +43,7 @@ struct HabitDetailView: View {
         .toolbar(.hidden, for: .tabBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Изменить", action: viewModel.edit)
+                Button(L10n.Common.edit, action: viewModel.edit)
             }
         }
         .sheet(item: $viewModel.editorRequest) { request in
@@ -148,16 +148,16 @@ private struct MonthHistoryCard: View {
             }
 
             FlowLayout(spacing: 12, lineSpacing: 6) {
-                legend("Выполнено") { Circle().fill(tint).frame(width: 11, height: 11) }
-                legend("Пропущено") { SkipCircle().frame(width: 11, height: 11) }
-                legend("Не выполнено") {
-                    Circle().strokeBorder(Color(hex: "#E0E0E5"), lineWidth: 1.5).frame(width: 10, height: 10)
+                legend(L10n.Common.completed) { Circle().fill(tint).frame(width: 11, height: 11) }
+                legend(L10n.Common.skipped) { SkipCircle().frame(width: 11, height: 11) }
+                legend(L10n.Common.notDone) {
+                    Circle().strokeBorder(AppColors.outline, lineWidth: 1.5).frame(width: 10, height: 10)
                 }
-                legend("Запланировано") {
+                legend(L10n.Common.planned) {
                     Circle().strokeBorder(AppColors.chevron, style: StrokeStyle(lineWidth: 1.5, dash: [2, 2]))
                         .frame(width: 10, height: 10)
                 }
-                legend("День отдыха") {
+                legend(L10n.Common.restDay) {
                     Text("12").font(.system(size: 10)).foregroundStyle(AppColors.textQuaternary)
                 }
             }
@@ -242,7 +242,7 @@ private struct DayCellView: View {
         switch cell.state {
         case .done: Circle().fill(tint)
         case .skipped: SkipCircle()
-        case .missed: Circle().strokeBorder(Color(hex: "#E0E0E5"), lineWidth: 1.5)
+        case .missed: Circle().strokeBorder(AppColors.outline, lineWidth: 1.5)
         case .planned: Circle().strokeBorder(AppColors.chevron, style: StrokeStyle(lineWidth: 1.5, dash: [3, 3]))
         case .today: Circle().strokeBorder(tint, lineWidth: 2)
         case .rest, .notStarted: EmptyView()
@@ -254,13 +254,13 @@ private struct DayCellView: View {
 private struct SkipCircle: View {
     var body: some View {
         Canvas { context, size in
-            context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Color(hex: "#F7F7F9")))
+            context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(AppColors.insetFill))
             var path = Path()
             for x in stride(from: -size.height, through: size.width, by: 5) {
                 path.move(to: CGPoint(x: x, y: size.height))
                 path.addLine(to: CGPoint(x: x + size.height, y: 0))
             }
-            context.stroke(path, with: .color(Color(hex: "#E2E2E8")), lineWidth: 2)
+            context.stroke(path, with: .color(AppColors.chartLine), lineWidth: 2)
         }
         .clipShape(Circle())
     }
@@ -275,11 +275,11 @@ private struct TrendCard: View {
 
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
-                Text("Тренд по неделям")
+                Text(L10n.HabitDetail.weeklyTrend)
                     .font(AppFont.headline)
                     .foregroundStyle(AppColors.label)
                 Spacer()
-                Text("8 недель")
+                Text(L10n.HabitDetail.eightWeeks)
                     .font(AppFont.footnote)
                     .foregroundStyle(AppColors.textSecondary)
             }

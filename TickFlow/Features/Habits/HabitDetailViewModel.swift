@@ -83,11 +83,11 @@ final class HabitDetailViewModel {
         let text = text
         let toBest = stats.best - stats.current
         return [
-            Stat(title: "Текущая серия", value: text.streak(stats),
-                 detail: stats.current > 0 && toBest <= 0 ? "Личный рекорд" : "Ещё \(text.streak(stats, count: toBest)) до рекорда"),
-            Stat(title: "Лучшая серия", value: text.streak(stats, count: stats.best), detail: "За всё время"),
-            Stat(title: "Выполнение", value: "\(stats.rate)%", detail: stats.isWeekly ? "За 4 недели" : "За 30 дней"),
-            Stat(title: "Всего", value: String(stats.total), detail: "Раз выполнено"),
+            Stat(title: L10n.HabitDetail.currentStreak, value: text.streak(stats),
+                 detail: stats.current > 0 && toBest <= 0 ? L10n.HabitDetail.personalBest : L10n.HabitDetail.toRecord(text.streak(stats, count: toBest))),
+            Stat(title: L10n.HabitDetail.bestStreak, value: text.streak(stats, count: stats.best), detail: L10n.HabitDetail.allTime),
+            Stat(title: L10n.Insights.completionRate, value: "\(stats.rate)%", detail: stats.isWeekly ? L10n.HabitDetail.last4Weeks : L10n.HabitDetail.last30Days),
+            Stat(title: L10n.HabitDetail.total, value: String(stats.total), detail: L10n.HabitDetail.timesDone),
         ]
     }
 
@@ -131,7 +131,7 @@ final class HabitDetailViewModel {
         guard let selectedDay, let history else { return nil }
         var info = format.weekdayAndDay(selectedDay) + " · " + history.state(on: selectedDay).label
         if let habit, habit.kind != .check, history.value(on: selectedDay) > 0, !history.isDone(on: selectedDay) {
-            info += " · \(text.value(history.value(on: selectedDay))) из \(text.value(habit.target)) \(text.unit(of: habit))"
+            info += " · " + L10n.HabitDetail.progress(text.value(history.value(on: selectedDay)), text.value(habit.target), text.unit(of: habit))
         }
         return info
     }
@@ -166,7 +166,7 @@ final class HabitDetailViewModel {
             return TrendBar(
                 id: weeksAgo,
                 value: "\(Int((fraction * 100).rounded()))%",
-                label: weeksAgo == 0 ? "Сейчас" : "−\(weeksAgo) н",
+                label: weeksAgo == 0 ? L10n.HabitDetail.now : L10n.HabitDetail.weeksAgo(weeksAgo),
                 fraction: fraction,
                 isCurrent: weeksAgo == 0
             )
@@ -178,24 +178,24 @@ final class HabitDetailViewModel {
     var infoRows: [InfoRow] {
         guard let habit else { return [] }
         return [
-            InfoRow(title: "Цель", value: text.target(of: habit)),
-            InfoRow(title: "Частота", value: text.schedule(of: habit)),
-            InfoRow(title: "Напоминание", value: reminderText(habit)),
-            InfoRow(title: "Дни отдыха", value: settings.settings.allowsRestDays ? "Разрешены" : "Выкл."),
+            InfoRow(title: L10n.HabitDetail.goal, value: text.target(of: habit)),
+            InfoRow(title: L10n.HabitDetail.frequency, value: text.schedule(of: habit)),
+            InfoRow(title: L10n.Common.reminder, value: reminderText(habit)),
+            InfoRow(title: L10n.Common.restDays, value: settings.settings.allowsRestDays ? L10n.HabitDetail.allowed : L10n.HabitDetail.off),
         ]
     }
 
     var footnote: String {
         settings.settings.skippedDaysKeepStreak
-            ? "Пропуски и дни отдыха не прерывают серию. Будущие дни не учитываются."
-            : "Дни отдыха не прерывают серию. Будущие дни не учитываются."
+            ? L10n.HabitDetail.ruleWithSkips
+            : L10n.HabitDetail.ruleRestOnly
     }
 
     var skipTitle: String {
         guard let history else { return "" }
-        if history.isDone(on: format.today) { return "Отметить как невыполненное" }
-        if history.isSkipped(on: format.today) { return "Отменить пропуск" }
-        return "Пропустить сегодня"
+        if history.isDone(on: format.today) { return L10n.HabitDetail.markNotDone }
+        if history.isSkipped(on: format.today) { return L10n.HabitDetail.undoSkip }
+        return L10n.HabitDetail.skipToday
     }
 
     // MARK: - Действия
@@ -206,13 +206,13 @@ final class HabitDetailViewModel {
         if history.isDone(on: today) {
             let previous = history.value(on: today)
             repository.setValue(0, for: habit, on: today)
-            toasts.show("Отметка снята") { [repository] in repository.setValue(previous, for: habit, on: today) }
+            toasts.show(L10n.HabitDetail.unmarked) { [repository] in repository.setValue(previous, for: habit, on: today) }
         } else if history.isSkipped(on: today) {
             repository.setSkipped(false, for: habit, on: today)
         } else {
             let previous = history.value(on: today)
             repository.setSkipped(true, for: habit, on: today)
-            let message = settings.settings.skippedDaysKeepStreak ? "Сегодня пропущено. Серия сохранена" : "Сегодня пропущено"
+            let message = settings.settings.skippedDaysKeepStreak ? L10n.HabitDetail.skippedStreakKept : L10n.HabitDetail.skippedToday
             toasts.show(message) { [repository] in
                 repository.setSkipped(false, for: habit, on: today)
                 if previous > 0 { repository.setValue(previous, for: habit, on: today) }
@@ -226,7 +226,7 @@ final class HabitDetailViewModel {
     }
 
     private func reminderText(_ habit: Habit) -> String {
-        guard habit.reminderEnabled, settings.settings.habitRemindersEnabled else { return "Выкл." }
+        guard habit.reminderEnabled, settings.settings.habitRemindersEnabled else { return L10n.HabitDetail.off }
         return format.time(minute: habit.reminderMinute)
     }
 }

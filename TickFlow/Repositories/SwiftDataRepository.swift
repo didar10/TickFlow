@@ -75,7 +75,7 @@ final class SwiftDataRepository: TaskRepository, TaskListRepository {
     @discardableResult
     func duplicate(_ task: TaskItem) -> TaskItem {
         var draft = TaskSnapshot(task).draft
-        draft.title = task.title + " (копия)"
+        draft.title = task.title + L10n.Common.copySuffix
         draft.isCompleted = false
         draft.subtasks = draft.subtasks.map { SubtaskDraft(id: UUID(), title: $0.title, isCompleted: $0.isCompleted) }
         return save(draft, to: nil)

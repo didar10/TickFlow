@@ -30,8 +30,8 @@ final class ListEditorViewModel {
         }
     }
 
-    var title: String { list == nil ? "Новая категория" : "Категория" }
-    var saveTitle: String { list == nil ? "Добавить" : "Сохранить" }
+    var title: String { list == nil ? L10n.Lists.newCategory : L10n.Common.category }
+    var saveTitle: String { list == nil ? L10n.Common.add : L10n.Common.save }
     var canSave: Bool { !trimmedName.isEmpty }
     var canDelete: Bool { list != nil }
 
@@ -44,8 +44,8 @@ final class ListEditorViewModel {
     var deleteMessage: String {
         let count = list?.tasks.count ?? 0
         return count == 0
-            ? "В категории нет задач."
-            : "Вместе с категорией удалятся \(count) \(Plural.tasks(count)). Это нельзя отменить."
+            ? L10n.Lists.noTasks
+            : L10n.Lists.deleteWarning(L10n.Plural.tasks(count))
     }
 
     func save() {
@@ -65,7 +65,7 @@ final class ListEditorViewModel {
         guard let list else { return }
         let name = list.name
         listRepository.delete(list)
-        toasts.show("Категория «\(name)» удалена")
+        toasts.show(L10n.Lists.deletedToast(name))
         isFinished = true
     }
 

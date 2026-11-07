@@ -14,9 +14,9 @@ enum HabitKind: Int, CaseIterable, Identifiable, Codable {
 
     var title: String {
         switch self {
-        case .check: "Да / нет"
-        case .amount: "Количество"
-        case .duration: "Время"
+        case .check: L10n.HabitKind.check
+        case .amount: L10n.HabitKind.amount
+        case .duration: L10n.Common.time
         }
     }
 }
@@ -33,9 +33,9 @@ enum HabitFrequency: Int, CaseIterable, Identifiable, Codable {
 
     var title: String {
         switch self {
-        case .daily: "Каждый день"
-        case .specificDays: "По дням"
-        case .weeklyGoal: "Цель на неделю"
+        case .daily: L10n.Common.everyDay
+        case .specificDays: L10n.HabitFrequency.specificDays
+        case .weeklyGoal: L10n.HabitFrequency.weeklyGoal
         }
     }
 }

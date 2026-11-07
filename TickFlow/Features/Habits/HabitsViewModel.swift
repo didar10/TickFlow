@@ -27,11 +27,11 @@ struct HabitSuggestion: Identifiable {
     let unit: String
 
     static let all: [HabitSuggestion] = [
-        HabitSuggestion(name: "Чтение", symbolName: "book", colorHex: "#5B5BD6", kind: .duration, target: 20, unit: "мин"),
-        HabitSuggestion(name: "Пить воду", symbolName: "drop", colorHex: "#2A9792", kind: .amount, target: 2, unit: "л"),
-        HabitSuggestion(name: "Тренировка", symbolName: "dumbbell", colorHex: "#CF8526", kind: .check, target: 1, unit: ""),
-        HabitSuggestion(name: "Медитация", symbolName: "leaf", colorHex: "#399E62", kind: .duration, target: 10, unit: "мин"),
-        HabitSuggestion(name: "Узнать новое", symbolName: "lightbulb", colorHex: "#BE5A96", kind: .check, target: 1, unit: ""),
+        HabitSuggestion(name: L10n.Habits.suggestionReading, symbolName: "book", colorHex: "#5B5BD6", kind: .duration, target: 20, unit: L10n.Format.minutesUnit),
+        HabitSuggestion(name: L10n.Habits.suggestionWater, symbolName: "drop", colorHex: "#2A9792", kind: .amount, target: 2, unit: L10n.Habits.unitLiters),
+        HabitSuggestion(name: L10n.Habits.suggestionWorkout, symbolName: "dumbbell", colorHex: "#CF8526", kind: .check, target: 1, unit: ""),
+        HabitSuggestion(name: L10n.Habits.suggestionMeditation, symbolName: "leaf", colorHex: "#399E62", kind: .duration, target: 10, unit: L10n.Format.minutesUnit),
+        HabitSuggestion(name: L10n.Habits.suggestionLearn, symbolName: "lightbulb", colorHex: "#BE5A96", kind: .check, target: 1, unit: ""),
     ]
 }
 
@@ -109,16 +109,16 @@ final class HabitsViewModel {
 
     var summary: String {
         let total = todayCounted.count, done = todayDoneCount
-        if total > 0, done == total { return "На сегодня всё выполнено" }
-        return "\(done) из \(total) \(Plural.habits(total)) выполнено"
+        if total > 0, done == total { return L10n.Habits.allDoneToday }
+        return L10n.Habits.progress(done, L10n.Plural.habitsOf(total))
     }
 
     var summarySubtitle: String {
         let best = repository.habits
             .map { ($0, history($0).stats) }
             .max { $0.1.current < $1.1.current }
-        guard let (habit, stats) = best, stats.current > 0 else { return "Отмечайте привычки, чтобы начать серию" }
-        return "Самая длинная серия: \(habit.name), \(text.streak(stats))"
+        guard let (habit, stats) = best, stats.current > 0 else { return L10n.Habits.markToStart }
+        return L10n.Habits.longestStreak(habit.name, text.streak(stats))
     }
 
     var week: [WeekBar] {
@@ -162,9 +162,9 @@ final class HabitsViewModel {
                 : "\(text.value(value)) / \(text.value(habit.target)) \(text.unit(of: habit)) · "
 
             let subtitle: String = if history.isSkipped(on: today) {
-                "Пропущено сегодня · серия сохранена"
+                L10n.Habits.skippedToday
             } else if !scheduled && !isDone {
-                "День отдыха · " + schedule
+                L10n.Habits.restDayPrefix + schedule
             } else {
                 progressText + schedule
             }
@@ -197,7 +197,7 @@ final class HabitsViewModel {
 
         let after = history(habit)
         guard !before.isDone(on: today), after.isDone(on: today) else { return }
-        toasts.show("«\(habit.name)» выполнено · серия \(text.streak(after.stats))") { [repository] in
+        toasts.show(L10n.Habits.doneToast(habit.name, text.streak(after.stats))) { [repository] in
             if wasSkipped {
                 repository.setSkipped(true, for: habit, on: today)
             } else {

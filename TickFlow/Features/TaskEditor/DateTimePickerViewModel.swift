@@ -43,6 +43,11 @@ final class DateTimePickerViewModel: Identifiable {
     private(set) var selection: DateSelection
     private(set) var displayedMonth: Date
     private(set) var expanded: Section?
+    /// Черновик карточки точного выбора времени (колёса дата · часы · минуты).
+    /// После закрытия остаётся как есть, чтобы исчезающие колёса не прокручивались к нулю.
+    private(set) var wheel: Wheel?
+    /// Карточка точного выбора открыта.
+    private(set) var isWheelOpen = false
 
     @ObservationIgnored private let format: DisplayFormatter
     @ObservationIgnored private let tasks: [TaskItem]
@@ -94,10 +99,10 @@ final class DateTimePickerViewModel: Identifiable {
             return selection.day.map { calendar.isDate($0, inSameDayAs: date) } ?? false
         }
         return [
-            Preset(id: "today", title: "Сегодня", icon: .number(String(calendar.component(.day, from: today))), isSelected: isOn(today)),
-            Preset(id: "tomorrow", title: "Завтра", icon: .sun, isSelected: isOn(tomorrow)),
-            Preset(id: "monday", title: "След. понедельник", icon: .number("Пн"), isSelected: isOn(nextMonday)),
-            Preset(id: "none", title: "Без даты", icon: .none, isSelected: isOn(nil)),
+            Preset(id: "today", title: L10n.Common.today, icon: .number(String(calendar.component(.day, from: today))), isSelected: isOn(today)),
+            Preset(id: "tomorrow", title: L10n.Common.tomorrow, icon: .sun, isSelected: isOn(tomorrow)),
+            Preset(id: "monday", title: L10n.DatePicker.nextMonday, icon: .number(L10n.Common.mondayShort), isSelected: isOn(nextMonday)),
+            Preset(id: "none", title: L10n.Common.noDate, icon: .none, isSelected: isOn(nil)),
         ]
     }
 
@@ -129,7 +134,7 @@ final class DateTimePickerViewModel: Identifiable {
 
     var hasTimeValue: Bool { selection.hasTime }
 
-    var timeValue: String { selection.hasTime ? format.time(minute: selection.startMinute) : "Нет" }
+    var timeValue: String { selection.hasTime ? format.time(minute: selection.startMinute) : L10n.Common.none }
 
     func selectPreset(_ id: String) {
         let today = format.today
@@ -186,7 +191,7 @@ final class DateTimePickerViewModel: Identifiable {
         guard !isInvalid else { return "" }
         if selection.isMultiDay(calendar: calendar), let day = selection.day {
             let days = (calendar.dateComponents([.day], from: day, to: selection.endDay).day ?? 0) + 1
-            return "\(days) дн."
+            return L10n.Format.daysShort(days)
         }
         return format.duration(minutes: selection.durationMinutes)
     }
@@ -219,6 +224,132 @@ final class DateTimePickerViewModel: Identifiable {
     func shiftEndDay(by delta: Int) {
         let next = calendar.date(byAdding: .day, value: delta, to: selection.endDay) ?? selection.endDay
         selection.endDay = max(next, selection.day ?? next)
+    }
+
+    // MARK: - Точное время (колёса)
+
+    enum WheelEdge: Hashable { case start, end }
+
+    /// Черновик карточки: правится колёсами и попадает в выбор только по «Применить».
+    struct Wheel: Equatable {
+        var edge: WheelEdge
+        /// Первый день колеса дат: за 90 дней до начала задачи.
+        let baseDay: Date
+        var startDay: Date
+        var startMinute: Int
+        var endDay: Date
+        var endMinute: Int
+    }
+
+    /// Сколько дней в колесе дат: 90 назад и 90 вперёд от начала, как в макете.
+    static let wheelDayCount = 181
+
+    func openWheel(_ edge: WheelEdge) {
+        let start = selection.day ?? format.today
+        wheel = Wheel(
+            edge: edge,
+            baseDay: calendar.date(byAdding: .day, value: -90, to: start) ?? start,
+            startDay: start,
+            startMinute: selection.startMinute,
+            endDay: selection.endDay,
+            endMinute: min(selection.endMinute, 1439)
+        )
+        isWheelOpen = true
+    }
+
+    func cancelWheel() { isWheelOpen = false }
+
+    func applyWheel() {
+        guard isWheelOpen, let wheel else { return }
+        selection.day = wheel.startDay
+        selection.startMinute = wheel.startMinute
+        selection.endDay = wheel.endDay
+        selection.endMinute = wheel.endMinute
+        selection.hasTime = true
+        displayedMonth = wheel.startDay
+        isWheelOpen = false
+    }
+
+    var wheelEdge: WheelEdge {
+        get { wheel?.edge ?? .start }
+        set { if isWheelOpen { wheel?.edge = newValue } }
+    }
+
+    /// Индекс выбранного дня в колесе дат для активного края.
+    var wheelDayIndex: Int {
+        get {
+            guard let wheel else { return 0 }
+            let day = wheel.edge == .start ? wheel.startDay : wheel.endDay
+            return calendar.dateComponents([.day], from: wheel.baseDay, to: day).day ?? 0
+        }
+        set {
+            guard let wheel else { return }
+            let day = calendar.date(byAdding: .day, value: newValue, to: wheel.baseDay) ?? wheel.baseDay
+            setWheel(day: day, minute: wheelMinute(of: wheel))
+        }
+    }
+
+    var wheelHour: Int {
+        get { wheel.map { wheelMinute(of: $0) / 60 } ?? 0 }
+        set {
+            guard let wheel else { return }
+            setWheel(day: wheelDay(of: wheel), minute: newValue * 60 + wheelMinute(of: wheel) % 60)
+        }
+    }
+
+    var wheelMinute: Int {
+        get { wheel.map { wheelMinute(of: $0) % 60 } ?? 0 }
+        set {
+            guard let wheel else { return }
+            setWheel(day: wheelDay(of: wheel), minute: wheelMinute(of: wheel) / 60 * 60 + newValue)
+        }
+    }
+
+    /// "Сегодня" или "Пн, 2 нояб." для строки колеса дат.
+    func wheelDayLabel(_ index: Int) -> String {
+        guard let wheel, let day = calendar.date(byAdding: .day, value: index, to: wheel.baseDay) else { return "" }
+        return calendar.isDate(day, inSameDayAs: format.today) ? L10n.Common.today : format.weekdayAndDay(day)
+    }
+
+    /// Длительность под колёсами: "1 ч", "3 ч · 2 дн." или предупреждение.
+    var wheelSummary: String {
+        guard let wheel else { return "" }
+        let minutes = wheelAbsoluteMinutes(wheel.endDay, wheel.endMinute, wheel) - wheelAbsoluteMinutes(wheel.startDay, wheel.startMinute, wheel)
+        guard minutes > 0 else { return L10n.DatePicker.endBeforeStartShort }
+        let days = (calendar.dateComponents([.day], from: wheel.startDay, to: wheel.endDay).day ?? 0) + 1
+        return format.duration(minutes: minutes) + (days > 1 ? " · " + L10n.Format.daysShort(days) : "")
+    }
+
+    var isWheelInvalid: Bool {
+        guard let wheel else { return false }
+        return wheelAbsoluteMinutes(wheel.endDay, wheel.endMinute, wheel) <= wheelAbsoluteMinutes(wheel.startDay, wheel.startMinute, wheel)
+    }
+
+    /// Начало двигает конец, сохраняя длительность; конец меняется сам по себе.
+    private func setWheel(day: Date, minute: Int) {
+        guard isWheelOpen, var wheel else { return }
+        if wheel.edge == .start {
+            let duration = wheelAbsoluteMinutes(wheel.endDay, wheel.endMinute, wheel)
+                - wheelAbsoluteMinutes(wheel.startDay, wheel.startMinute, wheel)
+            wheel.startDay = day
+            wheel.startMinute = minute
+            let end = wheelAbsoluteMinutes(day, minute, wheel) + duration
+            let endDayOffset = Int((Double(end) / 1440).rounded(.down))
+            wheel.endDay = calendar.date(byAdding: .day, value: endDayOffset, to: wheel.baseDay) ?? day
+            wheel.endMinute = end - endDayOffset * 1440
+        } else {
+            wheel.endDay = day
+            wheel.endMinute = minute
+        }
+        self.wheel = wheel
+    }
+
+    private func wheelDay(of wheel: Wheel) -> Date { wheel.edge == .start ? wheel.startDay : wheel.endDay }
+    private func wheelMinute(of wheel: Wheel) -> Int { wheel.edge == .start ? wheel.startMinute : wheel.endMinute }
+
+    /// Минуты от начала колеса дат — чтобы сравнивать и сдвигать моменты разных дней.
+    private func wheelAbsoluteMinutes(_ day: Date, _ minute: Int, _ wheel: Wheel) -> Int {
+        (calendar.dateComponents([.day], from: wheel.baseDay, to: day).day ?? 0) * 1440 + minute
     }
 
     // MARK: - Напоминание и повтор
@@ -255,7 +386,7 @@ final class DateTimePickerViewModel: Identifiable {
         guard let other = ConflictDetector.conflict(start: start, end: end, excluding: excludedID, in: tasks, calendar: calendar),
               let otherStart = other.dueDate, let otherEnd = other.endDate
         else { return nil }
-        return "Пересекается с «\(other.title)» (\(format.time(otherStart)) – \(format.time(otherEnd))). Всё равно можно добавить."
+        return L10n.DatePicker.conflict(other.title, format.time(otherStart), format.time(otherEnd))
     }
 
     // MARK: - Готово

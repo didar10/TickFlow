@@ -18,7 +18,7 @@ final class SearchViewModel {
     /// Открытый редактор задачи.
     var editorRequest: TaskEditorRequest?
 
-    let suggestions = ["Работа", "Ревью", "Здоровье", "Дела"]
+    let suggestions = [L10n.Sample.work, L10n.Search.suggestionReview, L10n.Sample.health, L10n.Sample.errands]
 
     @ObservationIgnored private let taskRepository: any TaskRepository
     @ObservationIgnored private let settings: any SettingsRepository
@@ -49,7 +49,7 @@ final class SearchViewModel {
             ResultRow(
                 id: task.id,
                 title: task.title,
-                meta: format.dueLabel(for: task) + " · " + (task.list?.name ?? "Без категории"),
+                meta: format.dueLabel(for: task) + " · " + (task.list?.name ?? L10n.Common.noCategory),
                 colorHex: task.list?.colorHex ?? AppColors.fallbackList,
                 isCompleted: task.isCompleted,
                 isOverdue: task.isOverdue

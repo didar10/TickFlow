@@ -45,7 +45,7 @@ enum ScheduleCommit {
 
     /// Текст для диалога выбора части серии.
     static func recurringMessage(title: String, rule: RepeatRule) -> String {
-        "«\(title)» повторяется (\(rule.title.lowercased())). К чему применить изменение?"
+        L10n.Schedule.recurringQuestion(title, rule.title.lowercased())
     }
 
     /// Подсказка о соседних задачах: «Встык с «…»» или «Перерыв всего N мин».
@@ -57,7 +57,7 @@ enum ScheduleCommit {
             let after = Int(otherStart.timeIntervalSince(end) / 60)
             let before = Int(start.timeIntervalSince(otherEnd) / 60)
             for gap in [after, before] where gap >= 0 && gap < 10 {
-                note = gap == 0 ? " · Встык с «\(other.title)»" : " · Перерыв всего \(gap) мин"
+                note = " · " + (gap == 0 ? L10n.Schedule.backToBack(other.title) : L10n.Schedule.shortBreak(gap))
             }
         }
         return note

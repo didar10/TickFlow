@@ -5,12 +5,15 @@ import Foundation
 struct DisplayFormatter {
     let calendar: Calendar
     let uses24HourTime: Bool
-    let locale = Locale(identifier: "ru_RU")
+    let locale = DisplayFormatter.appLocale
+
+    /// Язык, на котором показан интерфейс (из Localizable.xcstrings), — даты и числа пишутся на нём же.
+    static let appLocale = Locale(identifier: Bundle.main.preferredLocalizations.first ?? "ru")
 
     init(settings: AppSettings, base: Calendar = .current) {
         var calendar = base
         calendar.firstWeekday = settings.firstWeekday
-        calendar.locale = Locale(identifier: "ru_RU")
+        calendar.locale = DisplayFormatter.appLocale
         self.calendar = calendar
         uses24HourTime = settings.uses24HourTime
     }
@@ -53,9 +56,9 @@ struct DisplayFormatter {
 
     /// "Сегодня", "Завтра", "Вчера" или "Пт, 7 нояб.".
     func relativeDay(_ date: Date) -> String {
-        if calendar.isDateInToday(date) { return "Сегодня" }
-        if calendar.isDateInTomorrow(date) { return "Завтра" }
-        if calendar.isDateInYesterday(date) { return "Вчера" }
+        if calendar.isDateInToday(date) { return L10n.Common.today }
+        if calendar.isDateInTomorrow(date) { return L10n.Common.tomorrow }
+        if calendar.isDateInYesterday(date) { return L10n.Common.yesterday }
         return weekdayAndDay(date)
     }
 
@@ -112,7 +115,7 @@ struct DisplayFormatter {
 
     /// Подпись срока задачи: "Сегодня, 9:30", "7 – 9 нояб.", "Без даты".
     func dueLabel(for task: TaskItem) -> String {
-        guard let due = task.dueDate else { return "Без даты" }
+        guard let due = task.dueDate else { return L10n.Common.noDate }
         if task.isMultiDay, let last = task.lastDay { return shortRange(due, last) }
         return task.hasTime ? relativeDay(due) + ", " + time(due) : relativeDay(due)
     }
