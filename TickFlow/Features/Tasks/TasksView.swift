@@ -12,7 +12,7 @@ struct TasksView: View {
 
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                LargeHeader(title: "Задачи") { ProfileButton(action: viewModel.openSettings) }
+                LargeHeader(title: L10n.Tab.tasks) { EmptyView() }
                     .padding(.bottom, 8)
 
                 searchField
@@ -40,18 +40,18 @@ struct TasksView: View {
                 if viewModel.showsNoResults {
                     EmptyStateView(
                         symbol: "magnifyingglass",
-                        title: "Ничего не найдено по «\(viewModel.trimmedQueryText)»",
-                        message: "Проверьте написание или попробуйте другое слово.",
-                        actionTitle: "Очистить поиск",
+                        title: L10n.Tasks.noResultsTitle(viewModel.trimmedQueryText),
+                        message: L10n.Tasks.noResultsMessage,
+                        actionTitle: L10n.Tasks.clearSearch,
                         action: viewModel.clearQuery
                     )
                 }
                 if viewModel.showsNoTasks {
                     EmptyStateView(
                         symbol: "checklist",
-                        title: "Пока нет задач",
-                        message: "Запишите, что на уме. Дата и время необязательны.",
-                        actionTitle: "Новая задача",
+                        title: L10n.Tasks.emptyTitle,
+                        message: L10n.Tasks.emptyMessage,
+                        actionTitle: L10n.Common.newTask,
                         action: viewModel.startCreating
                     )
                 }
@@ -75,7 +75,7 @@ struct TasksView: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(AppColors.textTertiary)
-            TextField("Поиск задач", text: $viewModel.query)
+            TextField(L10n.Tasks.searchPlaceholder, text: $viewModel.query)
                 .font(.system(size: 17))
                 .foregroundStyle(AppColors.label)
                 .submitLabel(.search)
@@ -86,7 +86,7 @@ struct TasksView: View {
                         .foregroundStyle(AppColors.textQuaternary)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Очистить поиск")
+                .accessibilityLabel(L10n.Tasks.clearSearch)
             }
         }
         .padding(.horizontal, 10)
@@ -102,7 +102,7 @@ struct TasksView: View {
                         title: chip.title,
                         isSelected: chip.isSelected,
                         dotColor: chip.colorHex.map { Color(hex: $0) },
-                        selectedColor: AppColors.label,
+                        selectedColor: AppColors.inverse,
                         unselectedBackground: AppColors.surface
                     ) {
                         viewModel.selectCategory(chip.id)
@@ -117,7 +117,7 @@ struct TasksView: View {
         HStack {
             Button(action: viewModel.toggleSort) {
                 HStack(spacing: 4) {
-                    Text("Сортировка:").foregroundStyle(AppColors.textSecondary)
+                    Text(L10n.Tasks.sortLabel).foregroundStyle(AppColors.textSecondary)
                     Text(viewModel.sortTitle).fontWeight(.semibold).foregroundStyle(AppColors.accent)
                 }
             }
@@ -133,7 +133,7 @@ struct TasksView: View {
     private var todayCard: some View {
         VStack(spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
-                Text("Сегодня")
+                Text(L10n.Common.today)
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(AppColors.label)
                 Spacer()

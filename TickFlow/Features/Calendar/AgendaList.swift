@@ -20,10 +20,10 @@ struct AgendaList: View {
             let rows = viewModel.agenda
             if rows.isEmpty {
                 VStack(spacing: 10) {
-                    Text("Ничего не запланировано")
+                    Text(L10n.Calendar.nothingScheduled)
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColors.textSecondary)
-                    Button("Добавить задачу", action: viewModel.beginCreatingTask)
+                    Button(L10n.Common.addTask, action: viewModel.beginCreatingTask)
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(AppColors.accent)
                         .buttonStyle(.plain)

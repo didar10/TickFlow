@@ -11,10 +11,10 @@ enum ReminderOption: Int, CaseIterable, Identifiable, Codable {
 
     var title: String {
         switch self {
-        case .none: "Нет"
-        case .atTime: "В момент начала"
-        case .tenMinutesBefore: "За 10 минут"
-        case .hourBefore: "За 1 час"
+        case .none: L10n.Common.none
+        case .atTime: L10n.Reminder.atTime
+        case .tenMinutesBefore: L10n.Reminder.tenMinutes
+        case .hourBefore: L10n.Reminder.oneHour
         }
     }
 
@@ -41,11 +41,11 @@ enum RepeatRule: Int, CaseIterable, Identifiable, Codable {
 
     var title: String {
         switch self {
-        case .never: "Никогда"
-        case .daily: "Каждый день"
-        case .weekdays: "По будням"
-        case .weekly: "Каждую неделю"
-        case .monthly: "Каждый месяц"
+        case .never: L10n.Repeat.never
+        case .daily: L10n.Common.everyDay
+        case .weekdays: L10n.Common.weekdays
+        case .weekly: L10n.Repeat.weekly
+        case .monthly: L10n.Repeat.monthly
         }
     }
 

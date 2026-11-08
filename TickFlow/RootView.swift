@@ -13,18 +13,21 @@ struct RootView: View {
         @Bindable var viewModel = viewModel
 
         TabView(selection: $viewModel.selectedTab) {
-            Tab(AppTab.calendar.title, systemImage: AppTab.calendar.symbolName, value: AppTab.calendar) {
-                CalendarView(viewModel: dependencies.makeCalendarViewModel())
-            }
             Tab(AppTab.tasks.title, systemImage: AppTab.tasks.symbolName, value: AppTab.tasks) {
                 TasksView(viewModel: dependencies.makeTasksViewModel())
+            }
+            Tab(AppTab.calendar.title, systemImage: AppTab.calendar.symbolName, value: AppTab.calendar) {
+                CalendarView(viewModel: dependencies.makeCalendarViewModel())
             }
             Tab(AppTab.habits.title, systemImage: AppTab.habits.symbolName, value: AppTab.habits) {
                 HabitsView(viewModel: dependencies.makeHabitsViewModel())
             }
-            Tab(AppTab.insights.title, systemImage: AppTab.insights.symbolName, value: AppTab.insights) {
-                InsightsView(viewModel: dependencies.makeInsightsViewModel())
+            Tab(AppTab.profile.title, systemImage: AppTab.profile.symbolName, value: AppTab.profile) {
+                ProfileView(viewModel: dependencies.makeSettingsViewModel())
             }
+        }
+        .overlay {
+            QuickTaskPanel(host: dependencies.quickEditorHost)
         }
         .tint(AppColors.accent)
         .preferredColorScheme(viewModel.colorScheme)
@@ -38,9 +41,6 @@ struct RootView: View {
             }
         }
         .animation(.easeOut(duration: 0.25), value: viewModel.toast?.id)
-        .sheet(isPresented: $viewModel.isSettingsPresented) {
-            SettingsView(viewModel: dependencies.makeSettingsViewModel())
-        }
         .fullScreenCover(isPresented: $viewModel.isOnboardingPresented) {
             OnboardingView(viewModel: dependencies.makeOnboardingViewModel())
         }

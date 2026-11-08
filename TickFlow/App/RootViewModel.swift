@@ -27,11 +27,6 @@ final class RootViewModel {
         set { }
     }
 
-    var isSettingsPresented: Bool {
-        get { navigator.isSettingsPresented }
-        set { navigator.isSettingsPresented = newValue }
-    }
-
     var colorScheme: ColorScheme? {
         switch settings.settings.theme {
         case .system: nil

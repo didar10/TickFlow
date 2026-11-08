@@ -72,7 +72,7 @@ struct TimeGridView: View {
                                 .frame(width: 34, height: 34)
                                 .background {
                                     if day.isSelected {
-                                        Circle().fill(day.isToday ? AppColors.accent : AppColors.label)
+                                        Circle().fill(day.isToday ? AppColors.accent : AppColors.inverse)
                                     }
                                 }
                             Circle()
@@ -91,7 +91,10 @@ struct TimeGridView: View {
                 .padding(.bottom, 6)
         }
         .padding(.horizontal, 8)
-        .gesture(DragGesture(minimumDistance: 30).onEnded { viewModel.swipe(dx: $0.translation.width) })
+        .contentShape(Rectangle())
+        .simultaneousGesture(DragGesture(minimumDistance: 20).onEnded {
+            viewModel.swipe(dx: $0.translation.width, dy: $0.translation.height)
+        })
     }
 
     private func stripNumberColor(_ day: CalendarItems.DayHeader) -> Color {
@@ -123,7 +126,10 @@ struct TimeGridView: View {
         }
         .fixedSize(horizontal: false, vertical: true)
         .padding(.bottom, 6)
-        .gesture(DragGesture(minimumDistance: 30).onEnded { viewModel.swipe(dx: $0.translation.width) })
+        .contentShape(Rectangle())
+        .simultaneousGesture(DragGesture(minimumDistance: 20).onEnded {
+            viewModel.swipe(dx: $0.translation.width, dy: $0.translation.height)
+        })
     }
 
     // MARK: - Весь день
@@ -133,7 +139,7 @@ struct TimeGridView: View {
         let bars = viewModel.bars
         if !bars.isEmpty {
             ZStack(alignment: .topLeading) {
-                Text("весь\nдень")
+                Text(L10n.Common.allDayShort)
                     .font(.system(size: 9.5, weight: .medium))
                     .foregroundStyle(AppColors.textTertiary)
                     .multilineTextAlignment(.trailing)
@@ -164,10 +170,10 @@ struct TimeGridView: View {
                 Capsule().fill(style.foreground.opacity(0.35)).frame(width: 3, height: 11)
             }
         }
-        .foregroundStyle(bar.isCompleted ? Color(hex: "#9A9AA0") : style.foreground)
+        .foregroundStyle(bar.isCompleted ? AppColors.completedText : style.foreground)
         .padding(.horizontal, 6)
         .frame(width: barWidth, height: barHeight)
-        .background(bar.isCompleted ? Color(hex: "#F4F4F6") : style.background,
+        .background(bar.isCompleted ? AppColors.completedFill : style.background,
                     in: RoundedRectangle(cornerRadius: 5, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 5, style: .continuous)
@@ -306,7 +312,7 @@ struct TimeGridView: View {
         let style = CategoryStyle(hex: card.colorHex)
         let narrow = geometry.isNarrow
         let showsTime = rect.height >= (narrow ? 46 : 34)
-        let foreground = card.isCompleted ? Color(hex: "#9A9AA0") : style.foreground
+        let foreground = card.isCompleted ? AppColors.completedText : style.foreground
         let hasBottomHandle = !card.isCompleted && rect.height >= 28
         let hasTopHandle = !card.isCompleted && viewModel.isDay && rect.height >= 40
 
@@ -327,7 +333,7 @@ struct TimeGridView: View {
         .padding(.horizontal, narrow ? 3 : 6)
         .padding(.vertical, rect.height >= 24 ? 4 : 1)
         .frame(width: rect.width, height: rect.height, alignment: .topLeading)
-        .background(card.isCompleted ? Color(hex: "#F4F4F6") : style.background,
+        .background(card.isCompleted ? AppColors.completedFill : style.background,
                     in: RoundedRectangle(cornerRadius: 6, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 6, style: .continuous)

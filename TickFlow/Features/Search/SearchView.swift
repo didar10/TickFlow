@@ -18,7 +18,7 @@ struct SearchView: View {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundStyle(AppColors.textTertiary)
-                    TextField("Поиск задач и дат", text: $viewModel.query)
+                    TextField(L10n.Search.placeholder, text: $viewModel.query)
                         .font(.system(size: 17))
                         .focused($isFocused)
                         .submitLabel(.search)
@@ -27,7 +27,7 @@ struct SearchView: View {
                 .frame(height: 38)
                 .background(AppColors.fill, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
 
-                Button("Отмена") { dismiss() }
+                Button(L10n.Common.cancel) { dismiss() }
                     .font(.system(size: 17))
                     .foregroundStyle(AppColors.accent)
                     .buttonStyle(.plain)
@@ -39,7 +39,7 @@ struct SearchView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     if !viewModel.hasQuery {
-                        Text("ПОДСКАЗКИ")
+                        Text(L10n.Search.suggestions)
                             .font(AppFont.footnote)
                             .tracking(0.3)
                             .foregroundStyle(AppColors.textSecondary)
@@ -67,10 +67,10 @@ struct SearchView: View {
 
                     if viewModel.showsNoResults {
                         VStack(spacing: 6) {
-                            Text("Ничего не найдено")
+                            Text(L10n.Search.nothingFound)
                                 .font(.system(size: 20, weight: .semibold))
                                 .foregroundStyle(AppColors.label)
-                            Text("Нет совпадений с «\(viewModel.trimmedQueryText)». Попробуйте слово покороче.")
+                            Text(L10n.Search.noMatches(viewModel.trimmedQueryText))
                                 .font(AppFont.subheadline)
                                 .foregroundStyle(AppColors.textSecondary)
                                 .multilineTextAlignment(.center)

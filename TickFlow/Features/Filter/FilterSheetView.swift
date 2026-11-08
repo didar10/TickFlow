@@ -13,11 +13,11 @@ struct FilterSheetView: View {
 
         VStack(spacing: 14) {
             HStack {
-                Button("Сбросить", action: viewModel.reset)
+                Button(L10n.Common.reset, action: viewModel.reset)
                 Spacer()
-                Text("Фильтр").font(AppFont.headline).foregroundStyle(AppColors.label)
+                Text(L10n.Common.filter).font(AppFont.headline).foregroundStyle(AppColors.label)
                 Spacer()
-                Button("Готово") { dismiss() }.fontWeight(.semibold)
+                Button(L10n.Common.done) { dismiss() }.fontWeight(.semibold)
             }
             .font(.system(size: 17))
             .foregroundStyle(AppColors.accent)
@@ -25,7 +25,7 @@ struct FilterSheetView: View {
             .frame(height: 48)
 
             VStack(alignment: .leading, spacing: 10) {
-                Text("Категории").font(AppFont.footnote).foregroundStyle(AppColors.textSecondary)
+                Text(L10n.Common.categories).font(AppFont.footnote).foregroundStyle(AppColors.textSecondary)
                 FlowLayout(spacing: 8) {
                     ForEach(viewModel.categories) { option in
                         Chip(
@@ -45,7 +45,7 @@ struct FilterSheetView: View {
             .card()
 
             VStack(alignment: .leading, spacing: 10) {
-                Text("Статус").font(AppFont.footnote).foregroundStyle(AppColors.textSecondary)
+                Text(L10n.Common.status).font(AppFont.footnote).foregroundStyle(AppColors.textSecondary)
                 SegmentedPicker(options: viewModel.statusOptions, selection: $viewModel.status, background: AppColors.fillSecondary)
             }
             .padding(.horizontal, 16)

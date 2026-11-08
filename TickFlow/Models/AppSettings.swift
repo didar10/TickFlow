@@ -9,9 +9,9 @@ enum AppTheme: Int, CaseIterable, Identifiable, Codable {
 
     var title: String {
         switch self {
-        case .system: "Как в системе"
-        case .light: "Светлая"
-        case .dark: "Тёмная"
+        case .system: L10n.Theme.system
+        case .light: L10n.Theme.light
+        case .dark: L10n.Theme.dark
         }
     }
 }

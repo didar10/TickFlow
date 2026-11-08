@@ -10,11 +10,17 @@ final class OnboardingViewModel {
     }
 
     enum PlanStyle: String, CaseIterable, Identifiable {
-        case timeBlocks = "Блоки времени"
-        case todoList = "Простой список дел"
-        case both = "Всего понемногу"
+        case timeBlocks, todoList, both
 
         var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .timeBlocks: L10n.Onboarding.planTimeBlocks
+            case .todoList: L10n.Onboarding.planTodoList
+            case .both: L10n.Onboarding.planBoth
+            }
+        }
     }
 
     struct Goal: Identifiable {
@@ -31,27 +37,27 @@ final class OnboardingViewModel {
     }
 
     static let goals: [Goal] = [
-        Goal(title: "Больше читать", habit: HabitSuggestion(name: "Чтение", symbolName: "book", colorHex: "#5B5BD6",
-                                                            kind: .duration, target: 20, unit: "мин")),
-        Goal(title: "Двигаться каждый день", habit: HabitSuggestion(name: "Зарядка", symbolName: "dumbbell",
+        Goal(title: L10n.Onboarding.goalRead, habit: HabitSuggestion(name: L10n.Habits.suggestionReading, symbolName: "book", colorHex: "#5B5BD6",
+                                                            kind: .duration, target: 20, unit: L10n.Format.minutesUnit)),
+        Goal(title: L10n.Onboarding.goalMove, habit: HabitSuggestion(name: L10n.Onboarding.habitExercise, symbolName: "dumbbell",
                                                                     colorHex: "#CF8526", kind: .check, target: 1, unit: "")),
-        Goal(title: "Пить воду", habit: HabitSuggestion(name: "Пить воду", symbolName: "drop", colorHex: "#2A9792",
-                                                        kind: .amount, target: 2, unit: "л")),
-        Goal(title: "Лучше спать", habit: HabitSuggestion(name: "Лечь до 23:00", symbolName: "moon", colorHex: "#6C6C70",
+        Goal(title: L10n.Habits.suggestionWater, habit: HabitSuggestion(name: L10n.Habits.suggestionWater, symbolName: "drop", colorHex: "#2A9792",
+                                                        kind: .amount, target: 2, unit: L10n.Habits.unitLiters)),
+        Goal(title: L10n.Onboarding.goalSleep, habit: HabitSuggestion(name: L10n.Onboarding.habitBedtime, symbolName: "moon", colorHex: "#6C6C70",
                                                           kind: .check, target: 1, unit: "")),
-        Goal(title: "Учить язык", habit: HabitSuggestion(name: "Иностранный язык", symbolName: "lightbulb",
-                                                         colorHex: "#BE5A96", kind: .duration, target: 15, unit: "мин")),
-        Goal(title: "Медитировать", habit: HabitSuggestion(name: "Медитация", symbolName: "leaf", colorHex: "#399E62",
-                                                           kind: .duration, target: 10, unit: "мин")),
+        Goal(title: L10n.Onboarding.goalLanguage, habit: HabitSuggestion(name: L10n.Onboarding.habitLanguage, symbolName: "lightbulb",
+                                                         colorHex: "#BE5A96", kind: .duration, target: 15, unit: L10n.Format.minutesUnit)),
+        Goal(title: L10n.Onboarding.goalMeditate, habit: HabitSuggestion(name: L10n.Habits.suggestionMeditation, symbolName: "leaf", colorHex: "#399E62",
+                                                           kind: .duration, target: 10, unit: L10n.Format.minutesUnit)),
     ]
 
     let features: [Feature] = [
-        Feature(symbol: "calendar", title: "Планируйте время",
-                text: "День, 3 дня, неделя и месяц. Перетаскивайте задачи, растягивайте, чтобы изменить длительность."),
-        Feature(symbol: "checklist", title: "Ведите задачи",
-                text: "Записывайте быстро. Даты, приоритеты и подзадачи — когда они нужны."),
-        Feature(symbol: "checkmark.circle", title: "Формируйте привычки",
-                text: "Отметки, количество или минуты. Дни отдыха не прерывают серию."),
+        Feature(symbol: "calendar", title: L10n.Onboarding.featureTimeTitle,
+                text: L10n.Onboarding.featureTimeText),
+        Feature(symbol: "checklist", title: L10n.Onboarding.featureTasksTitle,
+                text: L10n.Onboarding.featureTasksText),
+        Feature(symbol: "checkmark.circle", title: L10n.Onboarding.featureHabitsTitle,
+                text: L10n.Onboarding.featureHabitsText),
     ]
 
     private(set) var step: Step = .welcome
@@ -96,17 +102,17 @@ final class OnboardingViewModel {
 
     var primaryTitle: String {
         switch step {
-        case .welcome: "Начать"
-        case .features, .personalize: "Продолжить"
-        case .reminders: "Включить напоминания"
-        case .done: "Создать первую задачу"
+        case .welcome: L10n.Onboarding.start
+        case .features, .personalize: L10n.Onboarding.continue
+        case .reminders: L10n.Onboarding.enableReminders
+        case .done: L10n.Calendar.createFirstTask
         }
     }
 
     var secondaryTitle: String? {
         switch step {
-        case .reminders: "Не сейчас"
-        case .done: "Добавить первую привычку"
+        case .reminders: L10n.Onboarding.notNow
+        case .done: L10n.Calendar.addFirstHabit
         default: nil
         }
     }
@@ -152,7 +158,7 @@ final class OnboardingViewModel {
 
     // MARK: - Под себя
 
-    var weekdayOptions: [(value: Int, title: String)] { [(2, "Понедельник"), (1, "Воскресенье")] }
+    var weekdayOptions: [(value: Int, title: String)] { [(2, L10n.Common.monday), (1, L10n.Common.sunday)] }
 
     func selectPlanStyle(_ style: PlanStyle) { planStyle = style }
 
@@ -170,18 +176,18 @@ final class OnboardingViewModel {
     // MARK: - Итог
 
     var summary: String {
-        let week = firstWeekday == 2 ? "с понедельника" : "с воскресенья"
-        var text = "Неделя начинается \(week), рабочие часы \(workdayStartLabel) – \(workdayEndLabel). "
+        let week = firstWeekday == 2 ? L10n.Onboarding.fromMonday : L10n.Onboarding.fromSunday
+        var text = L10n.Onboarding.summaryWeek(week, workdayStartLabel, workdayEndLabel)
         switch remindersAllowed {
-        case true?: text += "Напоминания включены. "
-        case false?: text += "Напоминания выключены — их можно включить позже в настройках. "
+        case true?: text += L10n.Onboarding.remindersOn
+        case false?: text += L10n.Onboarding.remindersOff
         case nil: break
         }
         let count = selectedGoals.count
         if count > 0 {
-            text += "Добавим \(count) \(Plural.form(count, "привычку", "привычки", "привычек")) по вашим целям. "
+            text += L10n.Onboarding.summaryHabits(L10n.Plural.habitsToAdd(count))
         }
-        return text + "Начните с одной задачи или привычки."
+        return text + L10n.Onboarding.startWithOne
     }
 
     // MARK: - Внутреннее
@@ -235,7 +241,7 @@ final class OnboardingViewModel {
             habits.save(HabitDraft(
                 name: habit.name, symbolName: habit.symbolName, colorHex: habit.colorHex, kind: habit.kind,
                 target: habit.target, unit: habit.unit,
-                step: habit.kind == .duration ? 5 : habit.unit == "л" ? 0.25 : 1,
+                step: habit.kind == .duration ? 5 : habit.unit == L10n.Habits.unitLiters ? 0.25 : 1,
                 frequency: .daily, weekdays: Array(1...7), timesPerWeek: 3,
                 reminderEnabled: false, reminderMinute: 540
             ), to: nil)

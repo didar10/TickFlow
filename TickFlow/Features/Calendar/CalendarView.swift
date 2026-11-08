@@ -18,8 +18,6 @@ struct CalendarView: View {
         .background(AppColors.surface.ignoresSafeArea())
         .overlay(alignment: .bottomTrailing) {
             FloatingAddButton { viewModel.beginCreatingTask() }
-                .padding(.trailing, 18)
-                .padding(.bottom, 18)
         }
         .taskEditor($viewModel.editorRequest)
         .onChange(of: viewModel.wantsNewTask, initial: true) { _, wants in
@@ -37,12 +35,12 @@ struct CalendarView: View {
         .alert(dialogTitle, isPresented: dialogBinding, presenting: viewModel.dialog) { dialog in
             switch dialog {
             case .recurring:
-                Button("Только это вхождение") { viewModel.resolveRecurring(.thisOccurrence) }
-                Button("Это и следующие") { viewModel.resolveRecurring(.thisAndFollowing) }
-                Button("Отмена", role: .cancel) { viewModel.cancelDialog() }
+                Button(L10n.Common.thisOccurrence) { viewModel.resolveRecurring(.thisOccurrence) }
+                Button(L10n.Common.thisAndFollowing) { viewModel.resolveRecurring(.thisAndFollowing) }
+                Button(L10n.Common.cancel, role: .cancel) { viewModel.cancelDialog() }
             case .conflict:
-                Button("Оставить оба") { viewModel.confirmConflict() }
-                Button("Отмена", role: .cancel) { viewModel.cancelDialog() }
+                Button(L10n.Common.keepBothMasculine) { viewModel.confirmConflict() }
+                Button(L10n.Common.cancel, role: .cancel) { viewModel.cancelDialog() }
             }
         } message: { dialog in
             switch dialog {
@@ -55,16 +53,16 @@ struct CalendarView: View {
             titleVisibility: .visible,
             presenting: viewModel.menuTask
         ) { task in
-            Button(task.isCompleted ? "Вернуть в работу" : "Выполнено") { viewModel.toggleFromMenu() }
-            Button("Открыть") { viewModel.open(task.id) }
-            Button("Удалить", role: .destructive) { viewModel.deleteFromMenu() }
+            Button(task.isCompleted ? L10n.Calendar.markIncomplete : L10n.Common.completed) { viewModel.toggleFromMenu() }
+            Button(L10n.Common.open) { viewModel.open(task.id) }
+            Button(L10n.Common.delete, role: .destructive) { viewModel.deleteFromMenu() }
         }
     }
 
     private var dialogTitle: String {
         switch viewModel.dialog {
-        case .recurring: "Повторяющаяся задача"
-        case .conflict: "Пересечение по времени"
+        case .recurring: L10n.Common.recurringTask
+        case .conflict: L10n.Common.timeConflict
         case nil: ""
         }
     }
@@ -79,50 +77,52 @@ struct CalendarView: View {
 
     // MARK: - Шапка
 
+    /// Одна строка: кнопка вида · месяц и год (свайп листает период) · поиск · фильтр · «Сегодня».
     private var header: some View {
         @Bindable var viewModel = viewModel
 
-        return VStack(spacing: 10) {
+        return HStack(spacing: 4) {
+            Menu {
+                Picker(L10n.Calendar.view, selection: $viewModel.mode) {
+                    ForEach(viewModel.modeOptions, id: \.value) { option in
+                        Label(option.title, systemImage: option.value.symbolName).tag(option.value)
+                    }
+                }
+                .pickerStyle(.inline)
+            } label: {
+                Image(systemName: viewModel.mode.symbolName)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(AppColors.label)
+                    .frame(width: 38, height: 38)
+                    .background(AppColors.fillTertiary, in: Circle())
+                    .contentShape(Circle())
+            }
+            .accessibilityLabel(L10n.Calendar.viewMenu)
+
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(viewModel.title)
-                    .font(AppFont.calendarTitle)
-                    .tracking(-0.4)
+                    .font(.system(size: 24, weight: .bold))
+                    .tracking(-0.5)
                     .foregroundStyle(AppColors.label)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                 Text(viewModel.year)
-                    .font(AppFont.calendarTitle.weight(.regular))
-                    .foregroundStyle(AppColors.textTertiary)
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(AppColors.textQuaternary)
                     .lineLimit(1)
                     .layoutPriority(-1)
-                Spacer(minLength: 4)
-                navigation
-                ProfileButton(action: viewModel.openSettings)
-                    .padding(.leading, 4)
-                    .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 8 }
+                Spacer(minLength: 0)
             }
-            .padding(.horizontal, 18)
-            .padding(.top, 6)
+            .padding(.leading, 4)
             .contentShape(Rectangle())
-            .gesture(DragGesture(minimumDistance: 30).onEnded { viewModel.swipe(dx: $0.translation.width) })
+            .gesture(DragGesture(minimumDistance: 30).onEnded { viewModel.swipe(dx: $0.translation.width, dy: $0.translation.height) })
 
-            HStack(spacing: 8) {
-                SegmentedPicker(options: viewModel.modeOptions, selection: $viewModel.mode)
-                iconButton("magnifyingglass", label: "Поиск") { viewModel.isSearchPresented = true }
-                iconButton("line.3.horizontal.decrease", label: "Фильтр", showsDot: viewModel.isFilterActive) {
-                    viewModel.isFilterPresented = true
-                }
+            iconButton("magnifyingglass", label: L10n.Common.search) { viewModel.isSearchPresented = true }
+            iconButton("line.3.horizontal.decrease", label: L10n.Common.filter, showsDot: viewModel.isFilterActive) {
+                viewModel.isFilterPresented = true
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 8)
-        }
-        .background(AppColors.surface)
-    }
 
-    private var navigation: some View {
-        HStack(spacing: 0) {
-            navButton("chevron.left", label: "Назад", action: viewModel.showPrevious)
-            Button("Сегодня", action: viewModel.goToToday)
+            Button(L10n.Common.today, action: viewModel.goToToday)
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(AppColors.accent)
                 .padding(.horizontal, 11)
@@ -130,37 +130,28 @@ struct CalendarView: View {
                 .background(AppColors.accentSoft, in: Capsule())
                 .fixedSize()
                 .buttonStyle(.plain)
-            navButton("chevron.right", label: "Вперёд", action: viewModel.showNext)
         }
-        .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 8 }
-    }
-
-    private func navButton(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(AppColors.accent)
-                .frame(width: 30, height: 30)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(label)
+        .padding(.leading, 12)
+        .padding(.trailing, 10)
+        .padding(.top, 6)
+        .padding(.bottom, 10)
+        .background(AppColors.surface)
     }
 
     private func iconButton(_ symbol: String, label: String, showsDot: Bool = false, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(AppColors.labelSecondary)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(AppColors.label)
                 .frame(width: 34, height: 32)
-                .background(AppColors.fill, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .contentShape(Rectangle())
                 .overlay(alignment: .topTrailing) {
                     if showsDot {
                         Circle()
                             .fill(AppColors.accent)
                             .frame(width: 8, height: 8)
                             .overlay(Circle().stroke(AppColors.surface, lineWidth: 1.5))
-                            .offset(x: 2, y: -2)
+                            .offset(x: -5, y: 4)
                     }
                 }
         }
@@ -206,17 +197,17 @@ private struct FirstRunCard: View {
                 .frame(width: 56, height: 56)
                 .background(AppColors.accentSoft, in: Circle())
                 .padding(.bottom, 4)
-            Text("Календарь пуст")
+            Text(L10n.Calendar.emptyTitle)
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(AppColors.label)
-            Text("Добавьте задачу или привычку — или загрузите пример, чтобы посмотреть, как всё работает.")
+            Text(L10n.Calendar.emptyMessage)
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.bottom, 8)
 
             Button(action: viewModel.beginCreatingTask) {
-                Text("Создать первую задачу")
+                Text(L10n.Calendar.createFirstTask)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
@@ -224,14 +215,14 @@ private struct FirstRunCard: View {
                     .background(AppColors.accent, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
             Button(action: viewModel.addFirstHabit) {
-                Text("Добавить первую привычку")
+                Text(L10n.Calendar.addFirstHabit)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(AppColors.accent)
                     .frame(maxWidth: .infinity)
                     .frame(height: 46)
                     .background(AppColors.accentSoft, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
-            Button("Загрузить пример", action: viewModel.loadSample)
+            Button(L10n.Common.loadSample, action: viewModel.loadSample)
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(AppColors.accent)
                 .padding(.top, 4)
@@ -248,10 +239,10 @@ private struct FirstRunCard: View {
 private struct DayEmptyCard: View {
     var body: some View {
         VStack(spacing: 4) {
-            Text("Ничего не запланировано")
+            Text(L10n.Calendar.nothingScheduled)
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(AppColors.label)
-            Text("Нажмите на время, чтобы добавить задачу.")
+            Text(L10n.Calendar.tapTimeToAdd)
                 .font(AppFont.footnote)
                 .foregroundStyle(AppColors.textSecondary)
         }

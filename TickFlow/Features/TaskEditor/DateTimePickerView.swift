@@ -24,7 +24,7 @@ struct DateTimePickerView: View {
                         presets
                         monthGrid
                         if !viewModel.hasDate {
-                            Text("Без даты задача попадёт в раздел «Без даты».")
+                            Text(L10n.DatePicker.noDateHint)
                                 .font(.system(size: 14))
                                 .foregroundStyle(AppColors.textSecondary)
                                 .frame(maxWidth: .infinity)
@@ -37,7 +37,7 @@ struct DateTimePickerView: View {
                     }
 
                     if viewModel.isInvalid {
-                        note("Конец раньше начала.", color: AppColors.danger)
+                        note(L10n.DatePicker.endBeforeStart, color: AppColors.danger)
                     }
                     if let conflict = viewModel.conflictText {
                         note(conflict, color: AppColors.warningText)
@@ -49,6 +49,12 @@ struct DateTimePickerView: View {
             }
         }
         .background(AppColors.surface)
+        .overlay {
+            // Контейнер всегда на месте; закрытая карточка не забирает касания,
+            // даже пока доигрывает анимация исчезновения.
+            ExactTimeCard(viewModel: viewModel)
+                .allowsHitTesting(viewModel.isWheelOpen)
+        }
         .presentationDetents([.large])
         .presentationDragIndicator(.hidden)
         .presentationCornerRadius(16)
@@ -61,10 +67,10 @@ struct DateTimePickerView: View {
 
         return HStack {
             circleButton("xmark", foreground: AppColors.label, background: AppColors.fillSecondary, action: onCancel)
-                .accessibilityLabel("Отмена")
+                .accessibilityLabel(L10n.Common.cancel)
             Spacer()
             SegmentedPicker(
-                options: [(.date, "Дата"), (.period, "Период")],
+                options: [(.date, L10n.Common.date), (.period, L10n.Common.period)],
                 selection: $viewModel.tab,
                 background: AppColors.fillSecondary
             )
@@ -77,7 +83,7 @@ struct DateTimePickerView: View {
                 action: viewModel.apply
             )
             .disabled(!viewModel.canApply)
-            .accessibilityLabel("Готово")
+            .accessibilityLabel(L10n.Common.done)
         }
         .padding(.horizontal, 16)
         .padding(.top, 14)
@@ -194,7 +200,7 @@ struct DateTimePickerView: View {
                 periodRows
             } else {
                 optionRow(
-                    symbol: "clock", title: "Время", value: viewModel.timeValue,
+                    symbol: "clock", title: L10n.Common.time, value: viewModel.timeValue,
                     isActive: viewModel.hasTimeValue, action: viewModel.toggleTime
                 ) {
                     if viewModel.hasTimeValue {
@@ -205,7 +211,7 @@ struct DateTimePickerView: View {
                                 .frame(width: 24, height: 24)
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel("Убрать время")
+                        .accessibilityLabel(L10n.DatePicker.removeTime)
                     }
                 }
                 if viewModel.isTimeExpanded {
@@ -224,7 +230,7 @@ struct DateTimePickerView: View {
             }
 
             optionRow(
-                symbol: "bell", title: "Напоминание", value: viewModel.reminderTitle,
+                symbol: "bell", title: L10n.Common.reminder, value: viewModel.reminderTitle,
                 isActive: viewModel.hasReminder, action: viewModel.toggleReminder
             ) { EmptyView() }
             if viewModel.isReminderExpanded {
@@ -232,7 +238,7 @@ struct DateTimePickerView: View {
             }
 
             optionRow(
-                symbol: "repeat", title: "Повтор", value: viewModel.repeatTitle,
+                symbol: "repeat", title: L10n.Common.repeat, value: viewModel.repeatTitle,
                 isActive: viewModel.hasRepeat, showsDivider: viewModel.isRepeatExpanded, action: viewModel.toggleRepeat
             ) { EmptyView() }
             if viewModel.isRepeatExpanded {
@@ -246,16 +252,18 @@ struct DateTimePickerView: View {
     private var periodRows: some View {
         VStack(spacing: 0) {
             periodBlock(
-                title: "Начало", symbol: "clock", trailing: "",
+                title: L10n.Common.start, symbol: "clock", trailing: "",
                 day: viewModel.startDayLabel, dayIsWarning: false,
                 time: viewModel.startTimeLabel, timeIsWarning: false,
-                dayStep: viewModel.shiftStartDay, timeStep: viewModel.shiftStartTime
+                dayStep: viewModel.shiftStartDay, timeStep: viewModel.shiftStartTime,
+                openExact: { viewModel.openWheel(.start) }
             )
             periodBlock(
-                title: "Конец", symbol: "circle", trailing: viewModel.durationLabel,
+                title: L10n.Common.end, symbol: "circle", trailing: viewModel.durationLabel,
                 day: viewModel.endDayLabel, dayIsWarning: viewModel.isEndDayBeforeStart,
                 time: viewModel.endTimeLabel, timeIsWarning: viewModel.isInvalid,
-                dayStep: viewModel.shiftEndDay, timeStep: viewModel.shiftEndTime
+                dayStep: viewModel.shiftEndDay, timeStep: viewModel.shiftEndTime,
+                openExact: { viewModel.openWheel(.end) }
             )
         }
     }
@@ -263,7 +271,8 @@ struct DateTimePickerView: View {
     private func periodBlock(
         title: String, symbol: String, trailing: String,
         day: String, dayIsWarning: Bool, time: String, timeIsWarning: Bool,
-        dayStep: @escaping (Int) -> Void, timeStep: @escaping (Int) -> Void
+        dayStep: @escaping (Int) -> Void, timeStep: @escaping (Int) -> Void,
+        openExact: @escaping () -> Void
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
@@ -276,10 +285,12 @@ struct DateTimePickerView: View {
                 Text(trailing).font(AppFont.footnote).foregroundStyle(AppColors.textSecondary)
             }
             HStack(spacing: 8) {
-                stepField(label: day, isWarning: dayIsWarning, minus: "chevron.left", plus: "chevron.right") {
+                stepField(label: day, isWarning: dayIsWarning, minus: "chevron.left", plus: "chevron.right",
+                          onTapLabel: openExact) {
                     dayStep($0)
                 }
-                stepField(label: time, isWarning: timeIsWarning, minus: "minus", plus: "plus") {
+                stepField(label: time, isWarning: timeIsWarning, minus: "minus", plus: "plus",
+                          onTapLabel: openExact) {
                     timeStep($0 * 15)
                 }
                 .frame(width: 136)
@@ -290,15 +301,24 @@ struct DateTimePickerView: View {
         .overlay(alignment: .bottom) { divider }
     }
 
-    private func stepField(label: String, isWarning: Bool, minus: String, plus: String, step: @escaping (Int) -> Void) -> some View {
+    /// Поле со стрелками: стрелки шагают, нажатие на значение открывает точный выбор.
+    private func stepField(
+        label: String, isWarning: Bool, minus: String, plus: String,
+        onTapLabel: @escaping () -> Void, step: @escaping (Int) -> Void
+    ) -> some View {
         HStack(spacing: 0) {
             stepButton(minus) { step(-1) }
-            Text(label)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(isWarning ? AppColors.danger : AppColors.label)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-                .frame(maxWidth: .infinity)
+            Button(action: onTapLabel) {
+                Text(label)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(isWarning ? AppColors.danger : AppColors.label)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint(L10n.DatePicker.openExactTime)
             stepButton(plus) { step(1) }
         }
         .frame(height: 36)
@@ -395,5 +415,168 @@ struct DateTimePickerView: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Точное время
+
+/// Плавающая карточка с колёсами «дата · часы · минуты» для начала или конца периода.
+private struct ExactTimeCard: View {
+    @Bindable var viewModel: DateTimePickerViewModel
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            if viewModel.isWheelOpen {
+                Color.black.opacity(0.35)
+                    .ignoresSafeArea()
+                    .onTapGesture(perform: viewModel.cancelWheel)
+                    .transition(.opacity)
+
+                card
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.smooth(duration: 0.25), value: viewModel.isWheelOpen)
+    }
+
+    private var card: some View {
+            VStack(spacing: 12) {
+                SegmentedPicker(
+                    options: [(.start, L10n.Common.start), (.end, L10n.Common.end)],
+                    selection: $viewModel.wheelEdge,
+                    background: AppColors.fillSecondary
+                )
+                .frame(width: 220)
+
+                wheels
+                    .frame(height: 238)
+
+                Text(viewModel.wheelSummary)
+                    .font(AppFont.footnote)
+                    .foregroundStyle(viewModel.isWheelInvalid ? AppColors.danger : AppColors.textSecondary)
+
+                HStack(spacing: 10) {
+                    Button(action: viewModel.cancelWheel) {
+                        Text(L10n.Common.cancel)
+                            .font(.system(size: 17, weight: .medium))
+                            .foregroundStyle(AppColors.label)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(AppColors.fillSecondary, in: Capsule())
+                    }
+                    Button(action: viewModel.applyWheel) {
+                        Text(L10n.Common.apply)
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(AppColors.accent, in: Capsule())
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(16)
+            .background(AppColors.surface, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .shadow(color: .black.opacity(0.25), radius: 25, y: 20)
+            .padding(.horizontal, 10)
+            .padding(.bottom, 28)
+            .ignoresSafeArea(edges: .bottom)
+    }
+
+    /// Три колеса в пропорциях макета 1.7 : 0.6 : 0.6 с общей полосой выбора по центру.
+    private var wheels: some View {
+        GeometryReader { proxy in
+            let unit = (proxy.size.width - 12) / 2.9
+            ZStack(alignment: .top) {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(AppColors.fillSecondary)
+                    .frame(height: WheelColumn.rowHeight)
+                    .padding(.top, WheelColumn.rowHeight * 3)
+
+                HStack(spacing: 4) {
+                    WheelColumn(count: DateTimePickerViewModel.wheelDayCount, selection: $viewModel.wheelDayIndex,
+                                label: viewModel.wheelDayLabel)
+                        .frame(width: unit * 1.7)
+                    WheelColumn(count: 24, selection: $viewModel.wheelHour) { String(format: "%02d", $0) }
+                        .frame(width: unit * 0.6)
+                    WheelColumn(count: 60, selection: $viewModel.wheelMinute) { String(format: "%02d", $0) }
+                        .frame(width: unit * 0.6)
+                }
+                .padding(.horizontal, 2)
+            }
+        }
+        .frame(height: WheelColumn.rowHeight * 7)
+    }
+}
+
+/// Колесо выбора: строки по 34 pt, 7 видимых, прокрутка защёлкивается на строке,
+/// выбранная — в центральной полосе. Края плавно гаснут, как в макете.
+private struct WheelColumn: View {
+    static let rowHeight: CGFloat = 34
+
+    let count: Int
+    @Binding var selection: Int
+    let label: (Int) -> String
+
+    /// Колесо крутит пользователь (палец или инерция). Программная прокрутка значение не меняет.
+    @State private var isScrolling = false
+    @State private var centeredIndex: Int?
+
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.vertical, showsIndicators: false) {
+                LazyVStack(spacing: 0) {
+                    ForEach(0..<count, id: \.self) { index in
+                        row(index)
+                            .id(index)
+                            .onTapGesture {
+                                withAnimation(.smooth(duration: 0.25)) { proxy.scrollTo(index, anchor: .center) }
+                            }
+                    }
+                }
+                .scrollTargetLayout()
+            }
+            .contentMargins(.vertical, Self.rowHeight * 3, for: .scrollContent)
+            .scrollTargetBehavior(.viewAligned)
+            .onScrollGeometryChange(for: Int.self) { geometry in
+                Int(((geometry.contentOffset.y + geometry.contentInsets.top) / Self.rowHeight).rounded())
+            } action: { _, index in
+                let index = min(max(index, 0), count - 1)
+                centeredIndex = index
+                if isScrolling, index != selection { selection = index }
+            }
+            .onScrollPhaseChange { _, phase in
+                isScrolling = phase == .interacting || phase == .decelerating
+                // Остановилось после жеста — фиксируем строку в центре.
+                if phase == .idle, let centeredIndex, centeredIndex != selection { selection = centeredIndex }
+            }
+            // Внешние изменения (смена «Начало/Конец», сдвиг конца вслед за началом) — прокрутить к значению.
+            .onChange(of: selection) { _, value in
+                guard !isScrolling else { return }
+                withAnimation(.smooth(duration: 0.25)) { proxy.scrollTo(value, anchor: .center) }
+            }
+            .onAppear { proxy.scrollTo(selection, anchor: .center) }
+            .sensoryFeedback(.selection, trigger: selection)
+        }
+        .mask {
+            LinearGradient(
+                stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.32),
+                        .init(color: .black, location: 0.68), .init(color: .clear, location: 1)],
+                startPoint: .top, endPoint: .bottom
+            )
+        }
+    }
+
+    private func row(_ index: Int) -> some View {
+        let isSelected = index == selection
+        return Text(label(index))
+            .font(.system(size: isSelected ? 21 : 19, weight: isSelected ? .medium : .regular))
+            .monospacedDigit()
+            .foregroundStyle(isSelected ? AppColors.label : AppColors.textQuaternary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .frame(maxWidth: .infinity)
+            .frame(height: Self.rowHeight)
+            .contentShape(Rectangle())
     }
 }

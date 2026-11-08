@@ -5,7 +5,7 @@ struct Chip: View {
     let title: String
     var isSelected = false
     var dotColor: Color?
-    var selectedColor: Color = AppColors.label
+    var selectedColor: Color = AppColors.inverse
     var unselectedBackground: Color = AppColors.fillSecondary
     let action: () -> Void
 
@@ -14,7 +14,7 @@ struct Chip: View {
             HStack(spacing: 6) {
                 if let dotColor {
                     Circle()
-                        .fill(isSelected && selectedColor != AppColors.label ? .white : dotColor)
+                        .fill(isSelected && selectedColor != AppColors.inverse ? .white : dotColor)
                         .frame(width: 8, height: 8)
                 }
                 Text(title)

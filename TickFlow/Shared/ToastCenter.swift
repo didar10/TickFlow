@@ -41,7 +41,7 @@ final class ToastCenter {
         guard let undo = current?.undo else { return }
         current = nil
         undo()
-        show("Изменение отменено")
+        show(L10n.Toast.changeUndone)
     }
 
     func dismiss() {

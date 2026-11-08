@@ -25,7 +25,7 @@ enum NotificationScheduler {
         guard let fireDate, fireDate > .now else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = "Напоминание"
+        content.title = L10n.Common.reminder
         content.body = title
         content.sound = .default
 
@@ -59,7 +59,7 @@ enum NotificationScheduler {
 
         let content = UNMutableNotificationContent()
         content.title = name
-        content.body = "Время для привычки «\(name)»"
+        content.body = L10n.Habits.reminderBody(name)
         content.sound = .default
 
         let days: [Int?] = weekdays.map { $0.map(Optional.some) } ?? [nil]

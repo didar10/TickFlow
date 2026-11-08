@@ -12,9 +12,7 @@ struct InsightsView: View {
 
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                LargeHeader(title: "Аналитика") {
-                    ProfileButton(action: viewModel.openSettings)
-                }
+                LargeHeader(title: L10n.Insights.title) { EmptyView() }
                 .padding(.bottom, 10)
 
                 if viewModel.hasData {
@@ -23,7 +21,7 @@ struct InsightsView: View {
                     SegmentedPicker(options: viewModel.rangeOptions, selection: $viewModel.range)
                         .padding(.horizontal, 16)
                         .padding(.bottom, 6)
-                    Text(report.period + " · по сравнению с прошлым периодом")
+                    Text(L10n.Insights.periodCaption(report.period))
                         .font(AppFont.footnote)
                         .foregroundStyle(AppColors.textSecondary)
                         .padding(.horizontal, 20)
@@ -42,14 +40,16 @@ struct InsightsView: View {
                 } else {
                     EmptyStateView(
                         symbol: "chart.bar",
-                        title: "Пока нет данных",
-                        message: "Добавляйте и выполняйте задачи и привычки — здесь появится статистика."
+                        title: L10n.Insights.emptyTitle,
+                        message: L10n.Insights.emptyMessage
                     )
                 }
             }
-            .padding(.bottom, 110)
+            .padding(.bottom, 30)
         }
         .background(AppColors.background.ignoresSafeArea())
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(AppColors.background, for: .navigationBar)
     }
 }
 
@@ -97,15 +97,15 @@ private struct ActivityChart: View {
                     .font(AppFont.headline)
                     .foregroundStyle(AppColors.label)
                 Spacer()
-                legend(AppColors.accent, "Выполнено")
-                legend(Color(hex: "#DADAF5"), "Создано")
+                legend(AppColors.accent, L10n.Common.completed)
+                legend(AppColors.accentMuted, L10n.Common.created)
             }
 
             HStack(alignment: .bottom, spacing: 4) {
                 ForEach(report.bars) { bar in
                     VStack(spacing: 6) {
                         HStack(alignment: .bottom, spacing: 2) {
-                            column(bar.created, color: Color(hex: "#DADAF5"), width: barWidth)
+                            column(bar.created, color: AppColors.accentMuted, width: barWidth)
                             column(bar.completed, color: bar.isBest ? AppColors.accent : Color(hex: "#8F8EE6"), width: barWidth)
                         }
                         .frame(height: plotHeight, alignment: .bottom)
@@ -150,7 +150,7 @@ private struct HabitConsistencyCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
-                Text("Регулярность привычек")
+                Text(L10n.Insights.habitConsistency)
                     .font(AppFont.headline)
                     .foregroundStyle(AppColors.label)
                 Spacer()

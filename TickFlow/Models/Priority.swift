@@ -12,30 +12,30 @@ enum Priority: Int, CaseIterable, Identifiable, Codable {
 
     var title: String {
         switch self {
-        case .none: "Без приоритета"
-        case .low: "Низкий"
-        case .medium: "Средний"
-        case .high: "Высокий"
+        case .none: L10n.Priority.none
+        case .low: L10n.Priority.low
+        case .medium: L10n.Priority.medium
+        case .high: L10n.Priority.high
         }
     }
 
     /// Подпись в меню редактора.
     var menuTitle: String {
         switch self {
-        case .none: "Без приоритета"
-        case .low: "Низкий приоритет"
-        case .medium: "Средний приоритет"
-        case .high: "Высокий приоритет"
+        case .none: L10n.Priority.none
+        case .low: L10n.Priority.lowFull
+        case .medium: L10n.Priority.mediumFull
+        case .high: L10n.Priority.highFull
         }
     }
 
     /// Цвета флажка из макета.
     var color: Color {
         switch self {
-        case .none: Color(hex: "#AEAEB2")
-        case .low: Color(hex: "#5B5BD6")
+        case .none: AppColors.textQuaternary
+        case .low: AppColors.accent
         case .medium: Color(hex: "#CF8526")
-        case .high: Color(hex: "#D93D42")
+        case .high: AppColors.danger
         }
     }
 

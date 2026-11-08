@@ -15,6 +15,8 @@ final class AppDependencies {
     /// Фильтр категорий и статуса, общий для календаря и задач.
     @ObservationIgnored let taskFilter = TaskFilterStore()
     @ObservationIgnored let navigator = AppNavigator()
+    /// Панель быстрого создания задачи поверх всего приложения (над таб-баром).
+    @ObservationIgnored let quickEditorHost = QuickEditorHost()
 
     static let modelTypes: [any PersistentModel.Type] = [
         TaskList.self, TaskItem.self, Subtask.self, Habit.self, HabitLog.self

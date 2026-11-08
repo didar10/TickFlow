@@ -65,7 +65,7 @@ struct TaskRowView: View {
                 Image(systemName: "repeat").font(.system(size: 11))
             }
             if item.hasConflict {
-                Label("Пересечение", systemImage: "exclamationmark.triangle")
+                Label(L10n.Common.overlap, systemImage: "exclamationmark.triangle")
                     .labelStyle(CompactLabelStyle())
                     .foregroundStyle(AppColors.warningText)
                     .fontWeight(.medium)

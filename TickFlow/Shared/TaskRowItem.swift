@@ -25,7 +25,7 @@ struct TaskRowItem: Identifiable, Equatable {
         priorityMarks = task.priority.marks
         self.meta = meta ?? format.dueLabel(for: task)
         isOverdue = task.isOverdue
-        categoryName = task.list?.name ?? "Без категории"
+        categoryName = task.list?.name ?? L10n.Common.noCategory
         categoryColorHex = task.list?.colorHex ?? AppColors.fallbackList
         subtaskProgress = task.subtasks.isEmpty ? nil : "\(task.completedSubtaskCount)/\(task.subtasks.count)"
         hasReminder = task.reminder != .none && task.dueDate != nil

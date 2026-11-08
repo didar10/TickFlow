@@ -12,7 +12,7 @@ struct ToastView: View {
                     .foregroundStyle(.white)
                     .lineLimit(2)
                 if toast.showsSaved {
-                    Label("Сохранено", systemImage: "checkmark")
+                    Label(L10n.Common.saved, systemImage: "checkmark")
                         .font(.system(size: 12))
                         .foregroundStyle(Color(hex: "#A1A1A8"))
                         .labelStyle(SavedLabelStyle())
@@ -22,7 +22,7 @@ struct ToastView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             if toast.undo != nil {
-                Button("Отменить", action: undo)
+                Button(L10n.Common.undo, action: undo)
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(AppColors.toastAction)
                     .buttonStyle(.plain)

@@ -1,23 +1,5 @@
 import SwiftUI
 
-/// Круглая кнопка в шапке экрана, открывает настройки.
-struct ProfileButton: View {
-    var size: CGFloat = 34
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: "person.fill")
-                .font(.system(size: size * 0.42, weight: .semibold))
-                .foregroundStyle(AppColors.accent)
-                .frame(width: size, height: size)
-                .background(AppColors.avatar, in: Circle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Настройки")
-    }
-}
-
 /// Заголовок крупного экрана с кнопкой справа.
 struct LargeHeader<Trailing: View>: View {
     let title: String

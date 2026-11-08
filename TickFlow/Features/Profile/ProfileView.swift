@@ -1,8 +1,8 @@
 import SwiftUI
 
-struct SettingsView: View {
+/// Вкладка «Профиль»: карточка пользователя (открывает аналитику) и все настройки.
+struct ProfileView: View {
     @Environment(AppDependencies.self) private var dependencies
-    @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @State private var viewModel: SettingsViewModel
 
@@ -16,17 +16,22 @@ struct SettingsView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    Text("Настройки")
+                    Text(L10n.Tab.profile)
                         .font(AppFont.largeTitle)
                         .tracking(-0.5)
                         .foregroundStyle(AppColors.label)
                         .padding(.horizontal, 4)
 
+                    NavigationLink(value: ProfileRoute.insights) {
+                        ProfileCard()
+                    }
+                    .buttonStyle(.plain)
+
                     if viewModel.notificationsDenied {
                         Button {
                             if let url = viewModel.systemSettingsURL { openURL(url) }
                         } label: {
-                            Text("Уведомления выключены. Откройте Настройки iOS › TickFlow › Уведомления, чтобы получать напоминания о задачах и привычках.")
+                            Text(L10n.Profile.notificationsDenied)
                                 .font(.system(size: 14))
                                 .foregroundStyle(AppColors.dangerText)
                                 .multilineTextAlignment(.leading)
@@ -38,25 +43,25 @@ struct SettingsView: View {
                         .buttonStyle(.plain)
                     }
 
-                    SettingsGroup("Оформление") {
-                        PickerRow("Тема", selection: $viewModel.theme,
+                    SettingsGroup(L10n.Profile.appearance) {
+                        PickerRow(L10n.Profile.theme, selection: $viewModel.theme,
                                   options: viewModel.themeOptions.map { ($0, $0.title) })
                     }
 
-                    SettingsGroup("Календарь") {
-                        PickerRow("Первый день недели", selection: $viewModel.firstWeekday,
+                    SettingsGroup(L10n.Tab.calendar) {
+                        PickerRow(L10n.Profile.firstWeekday, selection: $viewModel.firstWeekday,
                                   options: viewModel.weekdayOptions)
                         SettingsDivider()
-                        PickerRow("Вид по умолчанию", selection: $viewModel.defaultCalendarMode,
+                        PickerRow(L10n.Profile.defaultView, selection: $viewModel.defaultCalendarMode,
                                   options: viewModel.calendarModeOptions)
                         SettingsDivider()
-                        ToggleRow("24-часовой формат", isOn: $viewModel.uses24HourTime)
+                        ToggleRow(L10n.Profile.use24Hour, isOn: $viewModel.uses24HourTime)
                         SettingsDivider()
-                        PickerRow("Длительность задачи", selection: $viewModel.defaultTaskDuration,
+                        PickerRow(L10n.Profile.taskDuration, selection: $viewModel.defaultTaskDuration,
                                   options: viewModel.durationOptions)
                         SettingsDivider()
                         HStack(spacing: 6) {
-                            Text("Рабочие часы").font(AppFont.body).foregroundStyle(AppColors.label).lineLimit(1).fixedSize()
+                            Text(L10n.Profile.workingHours).font(AppFont.body).foregroundStyle(AppColors.label).lineLimit(1).fixedSize()
                             Spacer(minLength: 4)
                             StepperPill(value: viewModel.workdayStartLabel, minWidth: 44,
                                         decrement: { viewModel.shiftWorkdayStart(-1) },
@@ -69,18 +74,18 @@ struct SettingsView: View {
                         .settingsRow()
                     }
 
-                    SettingsGroup("Уведомления") {
-                        ToggleRow("Напоминания о задачах", isOn: $viewModel.taskRemindersEnabled)
+                    SettingsGroup(L10n.Profile.notifications) {
+                        ToggleRow(L10n.Profile.taskReminders, isOn: $viewModel.taskRemindersEnabled)
                             .disabled(viewModel.notificationsDenied)
                         SettingsDivider()
-                        PickerRow("По умолчанию", selection: $viewModel.defaultReminder,
+                        PickerRow(L10n.Profile.defaultReminder, selection: $viewModel.defaultReminder,
                                   options: viewModel.reminderOptions.map { ($0, $0.title) })
                         SettingsDivider()
-                        ToggleRow("Напоминания о привычках", isOn: $viewModel.habitRemindersEnabled)
+                        ToggleRow(L10n.Profile.habitReminders, isOn: $viewModel.habitRemindersEnabled)
                             .disabled(viewModel.notificationsDenied)
                     }
 
-                    SettingsGroup("Категории") {
+                    SettingsGroup(L10n.Common.categories) {
                         ForEach(viewModel.categories) { category in
                             Button { viewModel.editCategory(category.id) } label: {
                                 HStack(spacing: 10) {
@@ -99,7 +104,7 @@ struct SettingsView: View {
                         Button(action: viewModel.addCategory) {
                             HStack(spacing: 10) {
                                 Image(systemName: "plus").font(.system(size: 14, weight: .semibold))
-                                Text("Новая категория")
+                                Text(L10n.Lists.newCategory)
                                 Spacer()
                             }
                             .font(AppFont.body)
@@ -109,56 +114,95 @@ struct SettingsView: View {
                         .buttonStyle(.plain)
                     }
 
-                    SettingsGroup("Привычки") {
-                        ToggleRow("Разрешить дни отдыха", isOn: $viewModel.allowsRestDays)
+                    SettingsGroup(L10n.Tab.habits) {
+                        ToggleRow(L10n.Profile.allowRestDays, isOn: $viewModel.allowsRestDays)
                         SettingsDivider()
-                        ToggleRow("Пропуски сохраняют серию", isOn: $viewModel.skippedDaysKeepStreak)
+                        ToggleRow(L10n.Profile.skipsKeepStreak, isOn: $viewModel.skippedDaysKeepStreak)
                     }
 
-                    SettingsGroup("Данные и конфиденциальность") {
+                    SettingsGroup(L10n.Profile.dataPrivacy) {
                         ShareLink(item: viewModel.exportFile,
-                                  preview: SharePreview("Данные TickFlow", image: Image(systemName: "doc.text"))) {
-                            ValueRow("Экспорт данных", value: "JSON", showsChevron: true)
+                                  preview: SharePreview(L10n.Profile.exportPreview, image: Image(systemName: "doc.text"))) {
+                            ValueRow(L10n.Profile.exportData, value: "JSON", showsChevron: true)
                         }
                         .buttonStyle(.plain)
                         SettingsDivider()
                         Button(action: viewModel.requestLoadSample) {
-                            ValueRow("Загрузить пример", value: "", showsChevron: true)
+                            ValueRow(L10n.Common.loadSample, value: "", showsChevron: true)
                         }
                         .buttonStyle(.plain)
                         SettingsDivider()
-                        ValueRow("Хранение", value: "На устройстве")
+                        ValueRow(L10n.Profile.storage, value: L10n.Profile.onDevice)
                     }
 
-                    SettingsGroup("О приложении") {
-                        ValueRow("Версия", value: viewModel.version)
+                    SettingsGroup(L10n.Profile.about) {
+                        ValueRow(L10n.Profile.version, value: viewModel.version)
                         SettingsDivider()
                         Button(action: viewModel.replayOnboarding) {
-                            ValueRow("Пройти знакомство заново", value: "", showsChevron: true)
+                            ValueRow(L10n.Profile.replayOnboarding, value: "", showsChevron: true)
                         }
                         .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, 16)
+                .padding(.top, 8)
                 .padding(.bottom, 40)
             }
             .background(AppColors.background.ignoresSafeArea())
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Готово") { dismiss() }
+            .navigationTitle(L10n.Tab.profile)
+            .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(for: ProfileRoute.self) { route in
+                switch route {
+                case .insights:
+                    InsightsView(viewModel: dependencies.makeInsightsViewModel())
                 }
             }
         }
         .sheet(item: $viewModel.listEditorRequest) { request in
             ListEditorView(viewModel: dependencies.makeListEditorViewModel(list: request.list))
         }
-        .confirmationDialog("Загрузить пример данных?", isPresented: $viewModel.isLoadSampleConfirmationPresented,
+        .confirmationDialog(L10n.Profile.loadSampleQuestion, isPresented: $viewModel.isLoadSampleConfirmationPresented,
                             titleVisibility: .visible) {
-            Button("Загрузить", action: viewModel.confirmLoadSample)
+            Button(L10n.Profile.load, action: viewModel.confirmLoadSample)
         } message: {
-            Text("Добавятся категории, задачи и привычки с историей. Ваши данные останутся.")
+            Text(L10n.Profile.loadSampleMessage)
         }
         .task { await viewModel.refreshAuthorization() }
+    }
+}
+
+private enum ProfileRoute: Hashable {
+    case insights
+}
+
+/// Карточка пользователя. Учётной записи нет — данные хранятся на устройстве.
+private struct ProfileCard: View {
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "person.fill")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(AppColors.accent)
+                .frame(width: 56, height: 56)
+                .background(AppColors.avatar, in: Circle())
+            VStack(alignment: .leading, spacing: 2) {
+                Text(L10n.Profile.myProfile)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(AppColors.label)
+                Text(L10n.Profile.storedOnDevice)
+                    .font(.system(size: 14))
+                    .foregroundStyle(AppColors.textSecondary)
+                Text(L10n.Profile.viewInsights)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(AppColors.accent)
+                    .padding(.top, 2)
+            }
+            Spacer(minLength: 0)
+            Chevron()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(AppColors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .contentShape(Rectangle())
     }
 }
 

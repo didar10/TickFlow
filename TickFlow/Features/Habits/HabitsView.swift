@@ -14,7 +14,7 @@ struct HabitsView: View {
         NavigationStack(path: $viewModel.path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    LargeHeader(title: "Привычки") {
+                    LargeHeader(title: L10n.Tab.habits) {
                         Button { viewModel.startCreating() } label: {
                             Image(systemName: "plus")
                                 .font(.system(size: 17, weight: .bold))
@@ -23,7 +23,7 @@ struct HabitsView: View {
                                 .background(AppColors.accent, in: Circle())
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel("Новая привычка")
+                        .accessibilityLabel(L10n.Habits.new)
                     }
                     Text(viewModel.dateLabel)
                         .font(AppFont.subheadline)
@@ -34,7 +34,7 @@ struct HabitsView: View {
 
                     if viewModel.hasHabits {
                         SummaryCard(viewModel: viewModel)
-                        Text("Сегодня")
+                        Text(L10n.Common.today)
                             .font(AppFont.sectionTitle)
                             .foregroundStyle(AppColors.label)
                             .padding(.horizontal, 20)
@@ -58,7 +58,7 @@ struct HabitsView: View {
             }
             .background(AppColors.background.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
-            .navigationTitle("Привычки")
+            .navigationTitle(L10n.Tab.habits)
             .navigationDestination(for: UUID.self) { id in
                 HabitDetailView(viewModel: dependencies.makeHabitDetailViewModel(id: id))
             }
@@ -105,7 +105,7 @@ private struct SummaryCard: View {
                                 .fill(AppColors.fillSecondary)
                             if let fraction = day.fraction, fraction > 0 {
                                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .fill(day.isToday ? AppColors.accent : Color(hex: "#C4C3F2"))
+                                    .fill(day.isToday ? AppColors.accent : AppColors.accentFaded)
                                     .frame(height: 44 * max(fraction, 0.1))
                             }
                         }
@@ -158,7 +158,7 @@ private struct HabitRowView: View {
                 Text(row.streak)
                     .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(AppColors.label)
-                Text("серия")
+                Text(L10n.Common.streak)
                     .font(.system(size: 11))
                     .foregroundStyle(AppColors.textTertiary)
             }
@@ -189,7 +189,7 @@ private struct HabitRowView: View {
             }
             .buttonStyle(.plain)
             .sensoryFeedback(.success, trigger: row.isDone) { _, new in new }
-            .accessibilityLabel(row.isDone ? "Снять отметку" : "Отметить")
+            .accessibilityLabel(row.isDone ? L10n.Common.unmark : L10n.Common.mark)
         }
         .padding(.vertical, 14)
         .padding(.leading, 16)
@@ -205,10 +205,10 @@ private struct EmptyHabitsCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Начните с одной маленькой привычки")
+            Text(L10n.Habits.emptyTitle)
                 .font(AppFont.sectionTitle)
                 .foregroundStyle(AppColors.label)
-            Text("Выберите подсказку или создайте свою. Цель можно поменять в любой момент.")
+            Text(L10n.Habits.emptyMessage)
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColors.textSecondary)
             FlowLayout(spacing: 8) {

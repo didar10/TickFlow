@@ -32,13 +32,13 @@ struct OnboardingView: View {
             HStack(spacing: 6) {
                 ForEach(0..<viewModel.stepCount, id: \.self) { index in
                     Capsule()
-                        .fill(index <= viewModel.stepIndex ? AppColors.accent : Color(hex: "#E0E0E5"))
+                        .fill(index <= viewModel.stepIndex ? AppColors.accent : AppColors.outline)
                         .frame(width: index == viewModel.stepIndex ? 18 : 6, height: 6)
                 }
             }
             Spacer()
             if viewModel.canSkip {
-                Button("Пропустить", action: viewModel.skip)
+                Button(L10n.Onboarding.skip, action: viewModel.skip)
                     .font(.system(size: 16))
                     .foregroundStyle(AppColors.textTertiary)
                     .buttonStyle(.plain)
@@ -82,7 +82,7 @@ struct OnboardingView: View {
                     .buttonStyle(.plain)
             }
             if viewModel.showsSampleButton {
-                Button("Загрузить пример данных", action: viewModel.loadSample)
+                Button(L10n.Common.loadSampleData, action: viewModel.loadSample)
                     .font(.system(size: 15))
                     .foregroundStyle(AppColors.textTertiary)
                     .frame(height: 32)
@@ -123,12 +123,12 @@ private struct WelcomeStep: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 28) {
             VStack(spacing: 8) {
-                previewCard("9:30  Планёрка команды", hex: "#5B5BD6", width: 0.62, alignment: .leading)
-                previewCard("13:30  Обед с Мией", hex: "#2A9792", width: 0.58, alignment: .trailing)
+                previewCard(L10n.Onboarding.previewStandup, hex: "#5B5BD6", width: 0.62, alignment: .leading)
+                previewCard(L10n.Onboarding.previewLunch, hex: "#2A9792", width: 0.58, alignment: .trailing)
                 HStack {
-                    Text("Медитация")
+                    Text(L10n.Habits.suggestionMeditation)
                     Spacer()
-                    Text("31 день")
+                    Text(L10n.Onboarding.previewStreak)
                 }
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(CategoryStyle(hex: "#399E62").foreground)
@@ -139,8 +139,8 @@ private struct WelcomeStep: View {
             }
             .padding(.horizontal, 8)
 
-            StepTitle(title: "Планируйте дни спокойно.",
-                      subtitle: "TickFlow хранит задачи, расписание и привычки в одном тихом месте.",
+            StepTitle(title: L10n.Onboarding.welcomeTitle,
+                      subtitle: L10n.Onboarding.welcomeMessage,
                       size: 34)
         }
         .padding(.top, 40)
@@ -166,7 +166,7 @@ private struct FeaturesStep: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 28) {
-            StepTitle(title: "Всё, что вы планируете, — в одном месте")
+            StepTitle(title: L10n.Onboarding.featuresTitle)
             ForEach(features) { feature in
                 HStack(alignment: .top, spacing: 16) {
                     Image(systemName: feature.symbol)
@@ -197,24 +197,24 @@ private struct PersonalizeStep: View {
         @Bindable var viewModel = viewModel
 
         VStack(alignment: .leading, spacing: 22) {
-            StepTitle(title: "Под себя", subtitle: "Всё необязательно. Это можно поменять в настройках.")
+            StepTitle(title: L10n.Onboarding.personalizeEyebrow, subtitle: L10n.Onboarding.personalizeHint)
 
-            section("Как вы любите планировать?") {
+            section(L10n.Onboarding.planStyleQuestion) {
                 FlowLayout(spacing: 8) {
                     ForEach(OnboardingViewModel.PlanStyle.allCases) { style in
-                        Chip(title: style.rawValue, isSelected: viewModel.planStyle == style,
+                        Chip(title: style.title, isSelected: viewModel.planStyle == style,
                              selectedColor: AppColors.accent) { viewModel.selectPlanStyle(style) }
                     }
                 }
             }
 
-            section("Неделя начинается") {
+            section(L10n.Onboarding.weekStarts) {
                 SegmentedPicker(options: viewModel.weekdayOptions, selection: $viewModel.firstWeekday,
                                 background: AppColors.fillSecondary)
             }
 
             HStack(spacing: 6) {
-                Text("Рабочие часы").font(.system(size: 15, weight: .semibold)).foregroundStyle(AppColors.label)
+                Text(L10n.Profile.workingHours).font(.system(size: 15, weight: .semibold)).foregroundStyle(AppColors.label)
                     .lineLimit(1).fixedSize()
                 Spacer(minLength: 4)
                 StepperPill(value: viewModel.workdayStartLabel, minWidth: 44,
@@ -224,7 +224,7 @@ private struct PersonalizeStep: View {
                             decrement: { viewModel.shiftEnd(-1) }, increment: { viewModel.shiftEnd(1) })
             }
 
-            section("Цели для привычек") {
+            section(L10n.Onboarding.habitGoals) {
                 FlowLayout(spacing: 8) {
                     ForEach(OnboardingViewModel.goals) { goal in
                         Chip(title: goal.title, isSelected: viewModel.isGoalSelected(goal),
@@ -248,14 +248,14 @@ private struct RemindersStep: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
             VStack(spacing: 8) {
-                notification(time: "10:50", text: "Дизайн-ревью через 10 минут")
-                notification(time: "21:30", text: "10 минут чтения — и серия продлится до 12 дней")
+                notification(time: "10:50", text: L10n.Onboarding.reminderPreviewTask)
+                notification(time: "21:30", text: L10n.Onboarding.reminderPreviewHabit)
             }
             .padding(14)
             .background(AppColors.fillSecondary, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
 
-            StepTitle(title: "Мягкие напоминания, только по делу",
-                      subtitle: "Подскажем перед задачами со временем и в часы ваших привычек. Без рекламы и шума. Настроить или выключить можно позже.")
+            StepTitle(title: L10n.Onboarding.remindersTitle,
+                      subtitle: L10n.Onboarding.remindersMessage)
         }
         .padding(.top, 40)
     }
@@ -295,7 +295,7 @@ private struct DoneStep: View {
                 .foregroundStyle(AppColors.accent)
                 .frame(width: 64, height: 64)
                 .background(AppColors.accentSoft, in: Circle())
-            StepTitle(title: "Всё готово", subtitle: summary)
+            StepTitle(title: L10n.Onboarding.allSet, subtitle: summary)
         }
         .padding(.top, 60)
     }

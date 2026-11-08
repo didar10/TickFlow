@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Круглая кнопка создания в правом нижнем углу экрана.
 struct FloatingAddButton: View {
-    var accessibilityLabel = "Новая задача"
+    var accessibilityLabel = L10n.Common.newTask
     let action: () -> Void
 
     var body: some View {

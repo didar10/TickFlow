@@ -13,7 +13,7 @@ struct TaskActions {
         let completing = !task.isCompleted
         let next = tasks.setCompleted(task, completing)
         guard completing else { return }
-        toasts.show("Выполнено «\(task.title)»") { [tasks] in
+        toasts.show(L10n.Tasks.completedToast(task.title)) { [tasks] in
             if let next { tasks.delete(next) }
             tasks.restore(snapshot)
         }
@@ -22,7 +22,7 @@ struct TaskActions {
     func delete(_ task: TaskItem) {
         let snapshot = TaskSnapshot(task)
         tasks.delete(task)
-        toasts.show("Задача удалена") { [tasks] in
+        toasts.show(L10n.Tasks.deleted) { [tasks] in
             tasks.restore(snapshot)
         }
     }

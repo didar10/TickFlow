@@ -14,7 +14,7 @@ struct ListEditorView: View {
 
         VStack(spacing: 0) {
             HStack {
-                Button("Отмена") { dismiss() }
+                Button(L10n.Common.cancel) { dismiss() }
                 Spacer()
                 Text(viewModel.title).font(AppFont.headline).foregroundStyle(AppColors.label)
                 Spacer()
@@ -38,7 +38,7 @@ struct ListEditorView: View {
                             .foregroundStyle(tint)
                             .frame(width: 42, height: 42)
                             .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        TextField("Название категории", text: $viewModel.name)
+                        TextField(L10n.Lists.namePlaceholder, text: $viewModel.name)
                             .font(.system(size: 20, weight: .semibold))
                     }
                     .padding(.horizontal, 16)
@@ -46,7 +46,7 @@ struct ListEditorView: View {
                     .background(AppColors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Цвет").font(AppFont.footnote).foregroundStyle(AppColors.textSecondary)
+                        Text(L10n.Lists.color).font(AppFont.footnote).foregroundStyle(AppColors.textSecondary)
                         HStack(spacing: 14) {
                             ForEach(viewModel.colors, id: \.self) { hex in
                                 Button { viewModel.selectColor(hex) } label: {
@@ -60,7 +60,7 @@ struct ListEditorView: View {
                             }
                         }
                         Divider().overlay(AppColors.separator).padding(.vertical, 2)
-                        Text("Иконка").font(AppFont.footnote).foregroundStyle(AppColors.textSecondary)
+                        Text(L10n.Lists.icon).font(AppFont.footnote).foregroundStyle(AppColors.textSecondary)
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 5), spacing: 10) {
                             ForEach(viewModel.symbols, id: \.self) { symbol in
                                 let isSelected = symbol == viewModel.symbolName
@@ -81,7 +81,7 @@ struct ListEditorView: View {
                     .background(AppColors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                     if viewModel.canDelete {
-                        Button("Удалить категорию", role: .destructive, action: viewModel.requestDelete)
+                        Button(L10n.Lists.deleteCategory, role: .destructive, action: viewModel.requestDelete)
                             .font(.system(size: 17))
                             .foregroundStyle(AppColors.danger)
                             .frame(maxWidth: .infinity)
@@ -98,9 +98,9 @@ struct ListEditorView: View {
         .background(AppColors.background.ignoresSafeArea())
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
-        .confirmationDialog("Удалить «\(viewModel.name)»?", isPresented: $viewModel.isDeleteConfirmationPresented,
+        .confirmationDialog(L10n.Common.deleteNamed(viewModel.name), isPresented: $viewModel.isDeleteConfirmationPresented,
                             titleVisibility: .visible) {
-            Button("Удалить", role: .destructive, action: viewModel.confirmDelete)
+            Button(L10n.Common.delete, role: .destructive, action: viewModel.confirmDelete)
         } message: {
             Text(viewModel.deleteMessage)
         }

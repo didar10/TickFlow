@@ -13,11 +13,11 @@ final class TasksViewModel {
 
         var title: String {
             switch self {
-            case .overdue: "Просрочено"
-            case .today: "Сегодня"
-            case .upcoming: "Предстоящие"
-            case .undated: "Без даты"
-            case .completed: "Выполнено"
+            case .overdue: L10n.Common.overdue
+            case .today: L10n.Common.today
+            case .upcoming: L10n.Tasks.upcoming
+            case .undated: L10n.Common.noDate
+            case .completed: L10n.Common.completed
             }
         }
     }
@@ -76,12 +76,12 @@ final class TasksViewModel {
 
     var hasQuery: Bool { !trimmedQuery.isEmpty }
     var trimmedQueryText: String { trimmedQuery }
-    var sortTitle: String { sort == .date ? "Дата" : "Приоритет" }
-    var densityToggleTitle: String { density == .compact ? "Обычный вид" : "Компактный вид" }
+    var sortTitle: String { sort == .date ? L10n.Common.date : L10n.Common.priority }
+    var densityToggleTitle: String { density == .compact ? L10n.Tasks.comfortableView : L10n.Tasks.compactView }
     var isCompact: Bool { density == .compact }
 
     var categoryChips: [CategoryChip] {
-        let all = CategoryChip(id: nil, title: "Все", colorHex: nil, isSelected: filter.categoryIDs.isEmpty)
+        let all = CategoryChip(id: nil, title: L10n.Common.all, colorHex: nil, isSelected: filter.categoryIDs.isEmpty)
         return [all] + listRepository.lists.map {
             CategoryChip(id: $0.id, title: $0.name, colorHex: $0.colorHex, isSelected: filter.categoryIDs.contains($0.id))
         }
@@ -91,7 +91,6 @@ final class TasksViewModel {
         if let id { filter.toggleCategory(id) } else { filter.categoryIDs = [] }
     }
 
-    func openSettings() { navigator.openSettings() }
 
     func toggleSort() { sort = sort == .date ? .priority : .date }
     func toggleDensity() { density = density == .compact ? .comfortable : .compact }
@@ -108,7 +107,7 @@ final class TasksViewModel {
 
     var todaySummary: String {
         let tasks = todayTasks
-        return "\(tasks.filter(\.isCompleted).count) из \(tasks.count) выполнено"
+        return L10n.Common.doneOfTotal(tasks.filter(\.isCompleted).count, tasks.count)
     }
 
     var todayProgress: Double {
@@ -134,7 +133,7 @@ final class TasksViewModel {
                 count: tasks.count,
                 isDanger: kind == .overdue,
                 isCollapsible: kind == .completed,
-                toggleTitle: showsCompleted ? "Скрыть" : "Показать",
+                toggleTitle: showsCompleted ? L10n.Common.hide : L10n.Common.show,
                 rows: collapsed ? [] : tasks.map { TaskRowItem(task: $0, format: format, allTasks: all) }
             )
         }

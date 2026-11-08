@@ -179,7 +179,7 @@ final class TaskEditorViewModel {
 
     /// Подпись срока в полноэкранном редакторе.
     var whenFull: String {
-        guard let day = schedule.day else { return "Дата и напоминание" }
+        guard let day = schedule.day else { return L10n.Editor.dateAndReminder }
         if schedule.isMultiDay(calendar: calendar) {
             guard schedule.hasTime else { return format.shortRange(day, schedule.endDay) }
             return format.relativeDay(day) + ", " + format.time(minute: schedule.startMinute)
@@ -207,7 +207,7 @@ final class TaskEditorViewModel {
         }
     }
 
-    var categoryName: String { selectedList?.name ?? "Без категории" }
+    var categoryName: String { selectedList?.name ?? L10n.Common.noCategory }
     var categoryColorHex: String { selectedList?.colorHex ?? AppColors.fallbackList }
 
     var priorities: [PriorityOption] {
@@ -216,7 +216,7 @@ final class TaskEditorViewModel {
 
     var subtaskCount: String {
         guard !subtasks.isEmpty else { return "" }
-        return "\(subtasks.filter(\.isCompleted).count) из \(subtasks.count)"
+        return L10n.Common.ofTotal(subtasks.filter(\.isCompleted).count, subtasks.count)
     }
 
     var canAddSubtask: Bool { !newSubtaskTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
@@ -375,7 +375,7 @@ final class TaskEditorViewModel {
     func duplicate() {
         guard let task else { return }
         let copy = taskRepository.duplicate(task)
-        toasts.show("Создана копия") { [taskRepository] in
+        toasts.show(L10n.Editor.copyCreated) { [taskRepository] in
             taskRepository.delete(copy)
         }
     }
@@ -390,7 +390,7 @@ final class TaskEditorViewModel {
         let snapshot = TaskSnapshot(task)
         taskRepository.delete(task)
         isFinished = true
-        toasts.show("Задача удалена") { [taskRepository] in
+        toasts.show(L10n.Tasks.deleted) { [taskRepository] in
             taskRepository.restore(snapshot)
         }
     }
@@ -400,9 +400,9 @@ final class TaskEditorViewModel {
     private func create(_ draft: TaskDraft) {
         let item = taskRepository.save(draft, to: nil)
         isFinished = true
-        var message = "Добавлено · " + (draft.dueDate == nil ? "Без даты" : whenShort)
+        var message = L10n.Editor.addedToast(draft.dueDate == nil ? L10n.Common.noDate : whenShort)
         if let conflict = ConflictDetector.conflict(for: item, in: taskRepository.tasks) {
-            message += " · Пересекается с «\(conflict.title)»"
+            message += " · " + L10n.Editor.overlapsWith(conflict.title)
         }
         toasts.show(message) { [taskRepository] in
             taskRepository.delete(item)
@@ -422,7 +422,7 @@ final class TaskEditorViewModel {
         }
         isFinished = true
 
-        let message = scope == .thisOccurrence ? "Изменения сохранены (только это вхождение)" : "Изменения сохранены"
+        let message = scope == .thisOccurrence ? L10n.Editor.changesSavedThisOccurrence : L10n.Editor.changesSaved
         toasts.show(message) { [taskRepository] in
             if let next { taskRepository.delete(next) }
             undoSchedule()
@@ -435,7 +435,7 @@ final class TaskEditorViewModel {
         guard let other = ConflictDetector.conflict(start: start, end: end, excluding: task?.id, in: taskRepository.tasks),
               let otherStart = other.dueDate, let otherEnd = other.endDate
         else { return nil }
-        return "«\(draft.title)» пересекается с «\(other.title)» (\(format.time(otherStart)) – \(format.time(otherEnd)))."
+        return L10n.Common.overlapMessage(draft.title, other.title, format.time(otherStart), format.time(otherEnd))
     }
 
     private func makeDraft() -> TaskDraft {

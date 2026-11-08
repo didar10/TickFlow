@@ -20,8 +20,8 @@ enum SeedService {
         let all = lists.lists
         func category(_ name: String) -> TaskList? { all.first { $0.name == name } ?? all.first }
 
-        let work = category("Работа"), personal = category("Личное"), health = category("Здоровье")
-        let errands = category("Дела"), learning = category("Учёба")
+        let work = category(L10n.Sample.work), personal = category(L10n.Sample.personal), health = category(L10n.Sample.health)
+        let errands = category(L10n.Sample.errands), learning = category(L10n.Sample.learning)
 
         var order = (tasks.tasks.map(\.sortOrder).max() ?? 0) + 1
         func day(_ offset: Int) -> Date { calendar.date(byAdding: .day, value: offset, to: today) ?? today }
@@ -56,35 +56,35 @@ enum SeedService {
         }
 
         tasks.insert([
-            task("Планёрка команды", work, day: 0, start: 540, end: 570, repeatRule: .weekdays, reminder: .tenMinutesBefore),
-            task("Дизайн-ревью онбординга", work, day: 0, start: 660, end: 750, priority: .medium,
-                 notes: "Пройтись по новому приветственному сценарию.", reminder: .tenMinutesBefore,
-                 subtasks: [("Экспортировать макеты", true), ("Подготовить повестку", true), ("Собрать отзывы", false)]),
-            task("Написать отчёт за квартал", work, day: 0, start: 690, end: 780, priority: .high),
-            task("Обед с Мией", personal, day: 0, start: 810, end: 870),
-            task("Зал: верх тела", health, day: 0, start: 1080, end: 1140, repeatRule: .weekly),
-            task("Оплатить аренду", errands, day: 0, priority: .medium, reminder: .atTime),
-            task("Стоматолог", personal, day: 1, start: 600, end: 660, reminder: .hourBefore),
-            task("Конференция по дизайн-системам", work, day: 1, endDay: 3, notes: "Берлин. Бронь отеля в почте."),
-            task("Синк по продукту", work, day: -1, start: 840, end: 900, done: true),
-            task("Позвонить в банк", personal, day: -1, start: 960, end: 990, priority: .low),
-            task("Планирование спринта", work, day: -2, start: 600, end: 690, done: true),
-            task("Урок испанского", learning, day: -3, start: 1140, end: 1200, done: true),
-            task("Закупка продуктов", errands, day: 2, start: 600, end: 660,
-                 subtasks: [("Овсяное молоко", false), ("Кофе в зёрнах", false)]),
-            task("Пробежка 10 км", health, day: 3, start: 480, end: 570),
-            task("1:1 с Алексом", work, day: 4, start: 900, end: 930, repeatRule: .weekly),
-            task("Прочитать «Азбуку системного мышления»", learning, day: nil),
-            task("Продлить паспорт", errands, day: nil, priority: .low),
-            task("Обновить портфолио", work, day: 6),
-            task("Купить билеты на декабрь", personal, day: -4, priority: .medium),
-            task("Квартальное планирование", work, day: 8, start: 600, end: 720),
-            task("День рождения мамы", personal, day: 12),
-            task("Йога", health, day: -6, start: 1080, end: 1140, done: true),
-            task("ТО машины", errands, day: -8, start: 540, end: 600, done: true),
-            task("Подготовка к воркшопу", work, day: 7, start: 840, end: 960),
-            task("Код-ревью", work, day: -2, start: 840, end: 900, done: true),
-            task("Пилатес", health, day: -1, start: 1110, end: 1170, done: true),
+            task(L10n.Sample.teamStandup, work, day: 0, start: 540, end: 570, repeatRule: .weekdays, reminder: .tenMinutesBefore),
+            task(L10n.Sample.designReview, work, day: 0, start: 660, end: 750, priority: .medium,
+                 notes: L10n.Sample.designReviewNotes, reminder: .tenMinutesBefore,
+                 subtasks: [(L10n.Sample.exportMockups, true), (L10n.Sample.prepareAgenda, true), (L10n.Sample.collectFeedback, false)]),
+            task(L10n.Sample.quarterReport, work, day: 0, start: 690, end: 780, priority: .high),
+            task(L10n.Sample.lunchMia, personal, day: 0, start: 810, end: 870),
+            task(L10n.Sample.gymUpper, health, day: 0, start: 1080, end: 1140, repeatRule: .weekly),
+            task(L10n.Sample.payRent, errands, day: 0, priority: .medium, reminder: .atTime),
+            task(L10n.Sample.dentist, personal, day: 1, start: 600, end: 660, reminder: .hourBefore),
+            task(L10n.Sample.designConference, work, day: 1, endDay: 3, notes: L10n.Sample.designConferenceNotes),
+            task(L10n.Sample.productSync, work, day: -1, start: 840, end: 900, done: true),
+            task(L10n.Sample.callBank, personal, day: -1, start: 960, end: 990, priority: .low),
+            task(L10n.Sample.sprintPlanning, work, day: -2, start: 600, end: 690, done: true),
+            task(L10n.Sample.spanishLesson, learning, day: -3, start: 1140, end: 1200, done: true),
+            task(L10n.Sample.groceries, errands, day: 2, start: 600, end: 660,
+                 subtasks: [(L10n.Sample.oatMilk, false), (L10n.Sample.coffeeBeans, false)]),
+            task(L10n.Sample.run10k, health, day: 3, start: 480, end: 570),
+            task(L10n.Sample.oneOnOneAlex, work, day: 4, start: 900, end: 930, repeatRule: .weekly),
+            task(L10n.Sample.readThinking, learning, day: nil),
+            task(L10n.Sample.renewPassport, errands, day: nil, priority: .low),
+            task(L10n.Sample.updatePortfolio, work, day: 6),
+            task(L10n.Sample.buyTickets, personal, day: -4, priority: .medium),
+            task(L10n.Sample.quarterPlanning, work, day: 8, start: 600, end: 720),
+            task(L10n.Sample.momBirthday, personal, day: 12),
+            task(L10n.Sample.yoga, health, day: -6, start: 1080, end: 1140, done: true),
+            task(L10n.Sample.carService, errands, day: -8, start: 540, end: 600, done: true),
+            task(L10n.Sample.workshopPrep, work, day: 7, start: 840, end: 960),
+            task(L10n.Sample.codeReview, work, day: -2, start: 840, end: 900, done: true),
+            task(L10n.Sample.pilates, health, day: -1, start: 1110, end: 1170, done: true),
         ])
         tasks.insert(makeHistory(today: today, calendar: calendar, lists: [work, personal, health, errands, learning],
                                  firstOrder: order))
@@ -95,11 +95,11 @@ enum SeedService {
 
     private static func makeCategories() -> [TaskList] {
         [
-            TaskList(name: "Работа", colorHex: "#5B5BD6", symbolName: "briefcase", sortOrder: 0),
-            TaskList(name: "Личное", colorHex: "#2A9792", symbolName: "house", sortOrder: 1),
-            TaskList(name: "Здоровье", colorHex: "#399E62", symbolName: "heart", sortOrder: 2),
-            TaskList(name: "Дела", colorHex: "#CF8526", symbolName: "cart", sortOrder: 3),
-            TaskList(name: "Учёба", colorHex: "#BE5A96", symbolName: "graduationcap", sortOrder: 4),
+            TaskList(name: L10n.Sample.work, colorHex: "#5B5BD6", symbolName: "briefcase", sortOrder: 0),
+            TaskList(name: L10n.Sample.personal, colorHex: "#2A9792", symbolName: "house", sortOrder: 1),
+            TaskList(name: L10n.Sample.health, colorHex: "#399E62", symbolName: "heart", sortOrder: 2),
+            TaskList(name: L10n.Sample.errands, colorHex: "#CF8526", symbolName: "cart", sortOrder: 3),
+            TaskList(name: L10n.Sample.learning, colorHex: "#BE5A96", symbolName: "graduationcap", sortOrder: 4),
         ]
     }
 
@@ -118,15 +118,15 @@ enum SeedService {
             let reminderMinute: Int
         }
         let specs = [
-            Spec(name: "Чтение", symbol: "book", color: "#5B5BD6", kind: .duration, target: 20, step: 5, unit: "мин",
+            Spec(name: L10n.Habits.suggestionReading, symbol: "book", color: "#5B5BD6", kind: .duration, target: 20, step: 5, unit: L10n.Format.minutesUnit,
                  frequency: .daily, weekdays: Array(1...7), streak: 12, todayValue: 10, reminderMinute: 1290),
-            Spec(name: "Пить воду", symbol: "drop", color: "#2A9792", kind: .amount, target: 2, step: 0.25, unit: "л",
+            Spec(name: L10n.Habits.suggestionWater, symbol: "drop", color: "#2A9792", kind: .amount, target: 2, step: 0.25, unit: L10n.Habits.unitLiters,
                  frequency: .daily, weekdays: Array(1...7), streak: 5, todayValue: 1.25, reminderMinute: 600),
-            Spec(name: "Медитация", symbol: "leaf", color: "#399E62", kind: .duration, target: 10, step: 5, unit: "мин",
+            Spec(name: L10n.Habits.suggestionMeditation, symbol: "leaf", color: "#399E62", kind: .duration, target: 10, step: 5, unit: L10n.Format.minutesUnit,
                  frequency: .daily, weekdays: Array(1...7), streak: 30, todayValue: 10, reminderMinute: 450),
-            Spec(name: "Тренировка", symbol: "dumbbell", color: "#CF8526", kind: .check, target: 1, step: 1, unit: "",
+            Spec(name: L10n.Habits.suggestionWorkout, symbol: "dumbbell", color: "#CF8526", kind: .check, target: 1, step: 1, unit: "",
                  frequency: .specificDays, weekdays: [2, 4, 6], streak: 8, todayValue: 0, reminderMinute: 1110),
-            Spec(name: "Испанский", symbol: "lightbulb", color: "#BE5A96", kind: .check, target: 1, step: 1, unit: "",
+            Spec(name: L10n.Sample.spanish, symbol: "lightbulb", color: "#BE5A96", kind: .check, target: 1, step: 1, unit: "",
                  frequency: .specificDays, weekdays: [2, 3, 4, 5, 6], streak: 3, todayValue: 0, reminderMinute: 1200),
         ]
 
@@ -171,11 +171,11 @@ enum SeedService {
     /// Выполненные задачи за прошлые пять недель: чтобы в аналитике были графики и сравнение периодов.
     private static func makeHistory(today: Date, calendar: Calendar, lists: [TaskList?], firstOrder: Int) -> [TaskItem] {
         let titles = [
-            ["Ревью макетов", "Синк с командой", "Ответить на письма", "Подготовить презентацию", "Код-ревью"],
-            ["Позвонить родителям", "Разобрать фото", "Записаться к врачу"],
-            ["Пробежка", "Растяжка", "Бассейн"],
-            ["Купить продукты", "Оплатить счета", "Забрать посылку"],
-            ["Урок испанского", "Глава книги", "Онлайн-курс"],
+            [L10n.Sample.reviewMockups, L10n.Sample.teamSync, L10n.Sample.replyEmails, L10n.Sample.preparePresentation, L10n.Sample.codeReview],
+            [L10n.Sample.callParents, L10n.Sample.sortPhotos, L10n.Sample.doctorAppointment],
+            [L10n.Sample.run, L10n.Sample.stretching, L10n.Sample.pool],
+            [L10n.Sample.buyGroceries, L10n.Sample.payBills, L10n.Sample.pickUpParcel],
+            [L10n.Sample.spanishLesson, L10n.Sample.bookChapter, L10n.Sample.onlineCourse],
         ]
         var items: [TaskItem] = []
         var order = firstOrder
