@@ -13,7 +13,7 @@ enum ConflictDetector {
     ) -> TaskItem? {
         guard end > start, calendar.isDate(start, inSameDayAs: end.addingTimeInterval(-1)) else { return nil }
         return tasks.first { other in
-            guard other.id != id, !other.isCompleted, other.hasTime, !other.isMultiDay,
+            guard other.id != id, !other.isCompleted, other.hasTime, !other.isMultiDay(calendar: calendar),
                   let otherStart = other.dueDate, let otherEnd = other.endDate,
                   calendar.isDate(otherStart, inSameDayAs: start)
             else { return false }
@@ -21,9 +21,9 @@ enum ConflictDetector {
         }
     }
 
-    static func conflict(for task: TaskItem, in tasks: [TaskItem]) -> TaskItem? {
-        guard task.hasTime, !task.isMultiDay, !task.isCompleted,
+    static func conflict(for task: TaskItem, in tasks: [TaskItem], calendar: Calendar = .current) -> TaskItem? {
+        guard task.hasTime, !task.isMultiDay(calendar: calendar), !task.isCompleted,
               let start = task.dueDate, let end = task.endDate else { return nil }
-        return conflict(start: start, end: end, excluding: task.id, in: tasks)
+        return conflict(start: start, end: end, excluding: task.id, in: tasks, calendar: calendar)
     }
 }

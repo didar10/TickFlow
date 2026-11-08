@@ -30,7 +30,7 @@ struct TaskRowItem: Identifiable, Equatable {
         subtaskProgress = task.subtasks.isEmpty ? nil : "\(task.completedSubtaskCount)/\(task.subtasks.count)"
         hasReminder = task.reminder != .none && task.dueDate != nil
         isRepeating = task.repeatRule != .never
-        hasConflict = ConflictDetector.conflict(for: task, in: allTasks) != nil
+        hasConflict = ConflictDetector.conflict(for: task, in: allTasks, calendar: format.calendar) != nil
         isCompleted = task.isCompleted
         isUrgent = task.priority == .high
     }

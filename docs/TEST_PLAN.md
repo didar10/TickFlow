@@ -49,6 +49,15 @@
 
 ## Этап 1. Чистая логика (самая высокая ценность, без зависимостей)
 
+> **Готово.** 227 тестов (вместе с `InfrastructureTests`). Покрытие: `ConflictDetector`, `TimeGridLayout`, `DateSelection`,
+> `TaskRowItem`, `TaskFilterStore`, `AppSettings`, `TaskOptions`, `AppNavigator` — 100 %; `DisplayFormatter` 97 %,
+> `Habit` 97 %, `ToastCenter` 95 %, `TaskItem` 94 %, `ScheduleCommit` 94 %, `HabitHistory` 92 %.
+> Тесты идут на русском: язык и регион тестового запуска заданы в схеме (`ru` / `RU`).
+> Для этого в коде: `DisplayFormatter` принимает `locale`, `ToastCenter` — функцию задержки (в тестах `ManualSleeper`),
+> `ConflictDetector.conflict(for:in:calendar:)`, `gapNote` и `dueLabel` больше не берут `Calendar.current`.
+> `L10nTests` читают `L10n.swift` и `Localizable.xcstrings` по `#filePath` — работает в симуляторе, не на устройстве.
+> Зафиксированное поведение: ежемесячный повтор после 31 янв. → 28 фев. продолжается с 28-го (28 мар.).
+
 | Тестовый файл | Что проверяем | Ключевые случаи |
 |---|---|---|
 | `RepeatRuleTests` | `RepeatRule.nextDate` | `never` → `nil`; daily через конец месяца и года; weekly; monthly 31 янв → 28 фев (и 29 фев в високосный), зафиксировать текущее поведение для следующего шага (28 мар); weekdays: пт → пн, сб → пн; переход на летнее время сохраняет время суток |
