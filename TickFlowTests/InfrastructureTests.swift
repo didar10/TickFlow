@@ -10,6 +10,15 @@ struct InfrastructureTests {
         #expect(LaunchEnvironment.isRunningUnitTests)
     }
 
+    /// Схема задаёт язык, регион и часовой пояс тестового запуска: тексты и `Calendar.current`
+    /// не зависят от машины. Тест-помощники используют тот же пояс (`TestCalendar.moscow`).
+    @Test func testRunEnvironmentIsPinned() {
+        #expect(TimeZone.current.identifier == "Europe/Moscow")
+        #expect(Calendar.current.timeZone.identifier == "Europe/Moscow")
+        #expect(Bundle.main.preferredLocalizations.first == "ru")
+        #expect(DisplayFormatter.appLocale.identifier.hasPrefix("ru"))
+    }
+
     @Test func dateFactoryUsesGivenCalendar() {
         let value = date("2026-11-08 09:30")
         let parts = TestCalendar.moscow.dateComponents([.year, .month, .day, .hour, .minute], from: value)

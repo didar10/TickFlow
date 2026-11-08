@@ -156,7 +156,7 @@ final class TaskEditorViewModel {
         }
         let day = calendar.startOfDay(for: due)
         let start = task.hasTime ? format.minute(of: due) : 600
-        var endDay = task.lastDay ?? day
+        var endDay = task.lastDay(calendar: calendar) ?? day
         var endMinute = min(1440, start + (task.hasTime ? task.durationMinutes : defaultDuration))
         if task.hasTime, let end = task.endDate {
             endDay = calendar.startOfDay(for: end)
@@ -404,7 +404,7 @@ final class TaskEditorViewModel {
         let item = taskRepository.save(draft, to: nil)
         isFinished = true
         var message = L10n.Editor.addedToast(draft.dueDate == nil ? L10n.Common.noDate : whenShort)
-        if let conflict = ConflictDetector.conflict(for: item, in: taskRepository.tasks) {
+        if let conflict = ConflictDetector.conflict(for: item, in: taskRepository.tasks, calendar: calendar) {
             message += " · " + L10n.Editor.overlapsWith(conflict.title)
         }
         toasts.show(message) { [taskRepository] in
@@ -435,7 +435,7 @@ final class TaskEditorViewModel {
     private func conflictMessage(for draft: TaskDraft) -> String? {
         guard draft.hasTime, draft.endDay == nil, let start = draft.dueDate else { return nil }
         let end = start.addingTimeInterval(TimeInterval(draft.durationMinutes * 60))
-        guard let other = ConflictDetector.conflict(start: start, end: end, excluding: task?.id, in: taskRepository.tasks),
+        guard let other = ConflictDetector.conflict(start: start, end: end, excluding: task?.id, in: taskRepository.tasks, calendar: calendar),
               let otherStart = other.dueDate, let otherEnd = other.endDate
         else { return nil }
         return L10n.Common.overlapMessage(draft.title, other.title, format.time(otherStart), format.time(otherEnd))
