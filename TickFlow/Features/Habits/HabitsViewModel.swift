@@ -200,11 +200,13 @@ final class HabitsViewModel {
         let before = history(habit)
         let previous = before.value(on: today)
         let wasSkipped = before.isSkipped(on: today)
-        let next = before.isDone(on: today) ? 0 : min(habit.target, previous + habit.step)
+        // `HabitHistory` хранит ссылки на живые отметки: после `setValue` `before` видит новое значение.
+        let wasDone = before.isDone(on: today)
+        let next = wasDone ? 0 : min(habit.target, previous + habit.step)
         repository.setValue(next, for: habit, on: today)
 
         let after = history(habit)
-        guard !before.isDone(on: today), after.isDone(on: today) else { return }
+        guard !wasDone, after.isDone(on: today) else { return }
         toasts.show(L10n.Habits.doneToast(habit.name, text.streak(after.stats))) { [repository] in
             if wasSkipped {
                 repository.setSkipped(true, for: habit, on: today)

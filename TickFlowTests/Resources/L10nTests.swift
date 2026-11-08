@@ -105,6 +105,19 @@ struct L10nTests {
         }
     }
 
+    /// Знак процента в переводе пишется как `%%`: одиночный `%` форматирование съедает.
+    @Test func literalPercentIsEscaped() {
+        for key in Self.keys {
+            for language in Self.languages {
+                for value in Self.values(key, language).values {
+                    let rest = value.replacing("%%", with: "").replacing(/%(?:\d+\$)?(?:lld|ld|d|@|f|\.\d+f)/, with: "")
+                    #expect(!rest.contains("%"), "\(key) [\(language)]: \(value)")
+                }
+            }
+        }
+        #expect(L10n.Insights.deltaPercent("+12") == "+12% к прошлому периоду")
+    }
+
     // MARK: - Множественное число
 
     private func plural(_ key: String, _ count: Int, language: String) throws -> String {
