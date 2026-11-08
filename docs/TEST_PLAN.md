@@ -86,6 +86,16 @@
 
 ## Этап 2. Репозитории и сервисы (SwiftData в памяти)
 
+> **Готово.** 56 тестов, всего 283. Покрытие: `SwiftDataRepository` 98 %, `SwiftDataHabitRepository` 96 %,
+> `UserDefaultsSettingsRepository`, `TaskDraft`, `ExportService` — 100 % (включая `ExportFile` через `exported(as:)`).
+> `ExportService.makeJSON` принимает `exportedAt`, `SettingsViewModel` передаёт время из часов.
+> `SystemReminderScheduler` не покрыт — это тонкая обёртка над `UNUserNotificationCenter` (см. «Не входит в план»).
+> Зафиксированное текущее поведение (если оно не задумано — отдельная правка):
+> - `duplicate` копирует отметки подзадач как есть, сбрасывает только выполнение самой задачи;
+> - пропуск дня привычки обнуляет уже внесённое значение;
+> - `setDuration` не перепланирует напоминание (оно зависит только от начала);
+> - удаление категории каскадно удаляет её задачи и снимает их напоминания.
+
 | Тестовый файл | Что проверяем | Ключевые случаи |
 |---|---|---|
 | `SwiftDataRepositoryTests` | `save(_:to:)` | новая задача и редактирование; подзадачи: добавление, удаление, порядок; категория; `sortOrder` растёт |
@@ -137,4 +147,15 @@
 | 2. Репозитории и экспорт | 4 файла, ~50 тестов | 1–1,5 дня |
 | 3. ViewModel | ~12 файлов, ~120 тестов | 3–4 дня |
 
-После этапа 1 — запускать тесты в CI на каждый PR (GitHub Actions, `macos` runner, `xcodebuild test`).
+## Отложено: CI
+
+Пока не настроено, сделаем позже. Цель — запускать тесты на каждый PR в `main`.
+
+- GitHub Actions, workflow `.github/workflows/tests.yml`, триггеры `pull_request` и `push` в `main`.
+- Runner `macos` с Xcode 27 (`maxim-lobanov/setup-xcode` или выбор через `xcode-select`). Проект требует iOS 26.
+- Команда: `xcodebuild test -project TickFlow.xcodeproj -scheme TickFlow -destination 'platform=iOS Simulator,name=<iPhone>,OS=<версия>' -enableCodeCoverage YES`.
+  Имя и версию симулятора брать из образа runner'а (`xcrun simctl list devices available`): без `OS=` берётся последняя версия, а на ней нужного устройства может не быть.
+- Подпись не нужна: для симулятора достаточно `CODE_SIGNING_ALLOWED=NO`.
+- Язык тестов уже задан в схеме (`ru` / `RU`) — на runner'е отдельно настраивать не нужно.
+- `L10nTests` читают исходники по `#filePath`, поэтому тесты должны идти из checkout'а репозитория (не из собранного заранее бандла).
+- Результат: `.xcresult` как артефакт; отчёт о покрытии — `xcrun xccov view --report`. Порог покрытия как проверку PR можно добавить позже.

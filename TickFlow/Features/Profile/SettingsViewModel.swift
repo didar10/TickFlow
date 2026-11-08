@@ -177,8 +177,8 @@ final class SettingsViewModel {
 
     var exportFile: ExportFile {
         let day = clock.now.formatted(.iso8601.year().month().day())
-        return ExportFile(fileName: "TickFlow-\(day).json") { [tasks, lists, habits] in
-            try ExportService.makeJSON(tasks: tasks.tasks, lists: lists.lists, habits: habits.habits)
+        return ExportFile(fileName: "TickFlow-\(day).json") { [tasks, lists, habits, clock] in
+            try ExportService.makeJSON(tasks: tasks.tasks, lists: lists.lists, habits: habits.habits, exportedAt: clock.now)
         }
     }
 

@@ -60,11 +60,11 @@ enum ExportService {
     }
 
     @MainActor
-    static func makeJSON(tasks: [TaskItem], lists: [TaskList], habits: [Habit]) throws -> Data {
+    static func makeJSON(tasks: [TaskItem], lists: [TaskList], habits: [Habit], exportedAt: Date = .now) throws -> Data {
         let categories: [CategoryRecord] = lists.map { CategoryRecord(id: $0.id, name: $0.name, color: $0.colorHex) }
         let taskRecords: [TaskRecord] = tasks.map(record)
         let habitRecords: [HabitRecord] = habits.map(record)
-        let archive = Archive(exportedAt: .now, categories: categories, tasks: taskRecords, habits: habitRecords)
+        let archive = Archive(exportedAt: exportedAt, categories: categories, tasks: taskRecords, habits: habitRecords)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601

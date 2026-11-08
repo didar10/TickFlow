@@ -4,7 +4,7 @@ import Foundation
 /// Запоминает вызовы вместо работы с `UNUserNotificationCenter`.
 @MainActor
 final class FakeReminderScheduler: ReminderScheduling {
-    enum Call: Equatable {
+    enum Call: Hashable {
         case requestAuthorization
         case reschedule(taskID: UUID, title: String, fireDate: Date?)
         case cancel(taskID: UUID)
