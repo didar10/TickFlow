@@ -30,6 +30,8 @@ final class SettingsViewModel {
     @ObservationIgnored private let toasts: ToastCenter
     @ObservationIgnored private let navigator: AppNavigator
     @ObservationIgnored private let loadSampleData: () -> Void
+    @ObservationIgnored private let clock: any AppClock
+    @ObservationIgnored private let reminders: any ReminderScheduling
 
     init(
         settings: any SettingsRepository,
@@ -38,8 +40,12 @@ final class SettingsViewModel {
         habits: any HabitRepository,
         toasts: ToastCenter,
         navigator: AppNavigator,
-        loadSampleData: @escaping () -> Void
+        loadSampleData: @escaping () -> Void,
+        clock: any AppClock = SystemClock(),
+        reminders: any ReminderScheduling = SystemReminderScheduler()
     ) {
+        self.clock = clock
+        self.reminders = reminders
         self.settings = settings
         self.tasks = tasks
         self.lists = lists
@@ -135,7 +141,7 @@ final class SettingsViewModel {
 
     /// Проверяет, не запрещены ли уведомления в системных настройках.
     func refreshAuthorization() async {
-        notificationsDenied = await NotificationScheduler.isDenied()
+        notificationsDenied = await reminders.isDenied()
     }
 
     // MARK: - Категории
@@ -170,7 +176,7 @@ final class SettingsViewModel {
     // MARK: - Данные
 
     var exportFile: ExportFile {
-        let day = Date.now.formatted(.iso8601.year().month().day())
+        let day = clock.now.formatted(.iso8601.year().month().day())
         return ExportFile(fileName: "TickFlow-\(day).json") { [tasks, lists, habits] in
             try ExportService.makeJSON(tasks: tasks.tasks, lists: lists.lists, habits: habits.habits)
         }
@@ -203,5 +209,5 @@ final class SettingsViewModel {
     /// Системные настройки приложения — включить уведомления.
     var systemSettingsURL: URL? { URL(string: UIApplication.openSettingsURLString) }
 
-    private var format: DisplayFormatter { DisplayFormatter(settings: current) }
+    private var format: DisplayFormatter { DisplayFormatter(settings: current, clock: clock) }
 }

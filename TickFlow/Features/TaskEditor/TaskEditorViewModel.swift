@@ -85,6 +85,7 @@ final class TaskEditorViewModel {
     @ObservationIgnored private let listRepository: any TaskListRepository
     @ObservationIgnored private let toasts: ToastCenter
     @ObservationIgnored private let format: DisplayFormatter
+    @ObservationIgnored private let clock: any AppClock
     @ObservationIgnored private let original: TaskDraft?
     @ObservationIgnored private var pendingScope: RecurringScope?
 
@@ -95,9 +96,11 @@ final class TaskEditorViewModel {
         settings: AppSettings,
         tasks: any TaskRepository,
         lists: any TaskListRepository,
-        toasts: ToastCenter
+        toasts: ToastCenter,
+        clock: any AppClock = SystemClock()
     ) {
-        let format = DisplayFormatter(settings: settings)
+        let format = DisplayFormatter(settings: settings, clock: clock)
+        self.clock = clock
         self.format = format
         taskRepository = tasks
         listRepository = lists

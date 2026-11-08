@@ -34,14 +34,17 @@ final class HabitEditorViewModel {
     @ObservationIgnored private let settings: any SettingsRepository
     @ObservationIgnored private let toasts: ToastCenter
     @ObservationIgnored private let navigator: AppNavigator
+    @ObservationIgnored private let clock: any AppClock
 
     init(
         request: HabitEditorRequest,
         habits: any HabitRepository,
         settings: any SettingsRepository,
         toasts: ToastCenter,
-        navigator: AppNavigator
+        navigator: AppNavigator,
+        clock: any AppClock = SystemClock()
     ) {
+        self.clock = clock
         habit = request.habit
         repository = habits
         self.settings = settings
@@ -76,7 +79,7 @@ final class HabitEditorViewModel {
         }
     }
 
-    private var format: DisplayFormatter { DisplayFormatter(settings: settings.settings) }
+    private var format: DisplayFormatter { DisplayFormatter(settings: settings.settings, clock: clock) }
     private var text: HabitText { HabitText(format: format) }
 
     // MARK: - Шапка

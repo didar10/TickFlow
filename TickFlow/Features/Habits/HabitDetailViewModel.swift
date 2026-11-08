@@ -44,8 +44,16 @@ final class HabitDetailViewModel {
     @ObservationIgnored private let repository: any HabitRepository
     @ObservationIgnored private let settings: any SettingsRepository
     @ObservationIgnored private let toasts: ToastCenter
+    @ObservationIgnored private let clock: any AppClock
 
-    init(id: UUID, habits: any HabitRepository, settings: any SettingsRepository, toasts: ToastCenter) {
+    init(
+        id: UUID,
+        habits: any HabitRepository,
+        settings: any SettingsRepository,
+        toasts: ToastCenter,
+        clock: any AppClock = SystemClock()
+    ) {
+        self.clock = clock
         self.id = id
         repository = habits
         self.settings = settings
@@ -53,7 +61,7 @@ final class HabitDetailViewModel {
     }
 
     private var habit: Habit? { repository.habits.first { $0.id == id } }
-    private var format: DisplayFormatter { DisplayFormatter(settings: settings.settings) }
+    private var format: DisplayFormatter { DisplayFormatter(settings: settings.settings, clock: clock) }
     private var text: HabitText { HabitText(format: format) }
 
     private var history: HabitHistory? {

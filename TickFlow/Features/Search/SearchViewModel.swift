@@ -23,8 +23,15 @@ final class SearchViewModel {
     @ObservationIgnored private let taskRepository: any TaskRepository
     @ObservationIgnored private let settings: any SettingsRepository
     @ObservationIgnored private let actions: TaskActions
+    @ObservationIgnored private let clock: any AppClock
 
-    init(tasks: any TaskRepository, settings: any SettingsRepository, toasts: ToastCenter) {
+    init(
+        tasks: any TaskRepository,
+        settings: any SettingsRepository,
+        toasts: ToastCenter,
+        clock: any AppClock = SystemClock()
+    ) {
+        self.clock = clock
         taskRepository = tasks
         self.settings = settings
         actions = TaskActions(tasks: tasks, toasts: toasts)
@@ -37,7 +44,7 @@ final class SearchViewModel {
     /// Сначала незавершённые, внутри групп — по сроку.
     var results: [ResultRow] {
         guard hasQuery else { return [] }
-        let format = DisplayFormatter(settings: settings.settings)
+        let format = DisplayFormatter(settings: settings.settings, clock: clock)
         let matches = taskRepository.tasks
             .filter { task in
                 task.title.localizedStandardContains(trimmedQuery)
@@ -52,7 +59,7 @@ final class SearchViewModel {
                 meta: format.dueLabel(for: task) + " · " + (task.list?.name ?? L10n.Common.noCategory),
                 colorHex: task.list?.colorHex ?? AppColors.fallbackList,
                 isCompleted: task.isCompleted,
-                isOverdue: task.isOverdue
+                isOverdue: task.isOverdue(now: format.now, calendar: format.calendar)
             )
         }
     }

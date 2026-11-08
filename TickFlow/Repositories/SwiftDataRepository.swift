@@ -16,10 +16,21 @@ final class SwiftDataRepository: TaskRepository, TaskListRepository {
     @ObservationIgnored var remindersEnabled = true
 
     @ObservationIgnored private let context: ModelContext
+    @ObservationIgnored private let clock: any AppClock
+    @ObservationIgnored private let calendar: Calendar
+    @ObservationIgnored private let reminders: any ReminderScheduling
     @ObservationIgnored private let logger = Logger(subsystem: "com.ahito.TickFlow", category: "Repository")
 
-    init(context: ModelContext) {
+    init(
+        context: ModelContext,
+        clock: any AppClock = SystemClock(),
+        calendar: Calendar = .current,
+        reminders: any ReminderScheduling = SystemReminderScheduler()
+    ) {
         self.context = context
+        self.clock = clock
+        self.calendar = calendar
+        self.reminders = reminders
         reload()
     }
 
@@ -47,8 +58,8 @@ final class SwiftDataRepository: TaskRepository, TaskListRepository {
 
     @discardableResult
     func setCompleted(_ task: TaskItem, _ isCompleted: Bool) -> TaskItem? {
-        task.setCompleted(isCompleted)
-        task.updatedAt = .now
+        task.setCompleted(isCompleted, at: clock.now)
+        task.updatedAt = clock.now
 
         var next: TaskItem?
         if isCompleted, task.repeatRule != .never, let nextDraft = nextOccurrence(of: task) {
@@ -67,7 +78,7 @@ final class SwiftDataRepository: TaskRepository, TaskListRepository {
     }
 
     func delete(_ task: TaskItem) {
-        NotificationScheduler.cancel(taskID: task.id)
+        reminders.cancel(taskID: task.id)
         context.delete(task)
         commit()
     }
@@ -102,32 +113,31 @@ final class SwiftDataRepository: TaskRepository, TaskListRepository {
         task.dueDate = start
         task.hasTime = true
         task.endDay = nil
-        task.updatedAt = .now
+        task.updatedAt = clock.now
         commit()
         updateReminder(for: task)
     }
 
     func setDuration(_ task: TaskItem, minutes: Int) {
         task.durationMinutes = minutes
-        task.updatedAt = .now
+        task.updatedAt = clock.now
         commit()
     }
 
     func setDays(_ task: TaskItem, start: Date, end: Date) {
-        let calendar = Calendar.current
         let first = calendar.startOfDay(for: min(start, end))
         let last = calendar.startOfDay(for: max(start, end))
         task.dueDate = first
         task.hasTime = false
         task.endDay = first == last ? nil : last
-        task.updatedAt = .now
+        task.updatedAt = clock.now
         commit()
         updateReminder(for: task)
     }
 
     func moveToToday(_ task: TaskItem) {
-        task.moveToToday()
-        task.updatedAt = .now
+        task.moveToToday(calendar: calendar, now: clock.now)
+        task.updatedAt = clock.now
         commit()
         updateReminder(for: task)
     }
@@ -163,7 +173,7 @@ final class SwiftDataRepository: TaskRepository, TaskListRepository {
     }
 
     func delete(_ list: TaskList) {
-        list.tasks.forEach { NotificationScheduler.cancel(taskID: $0.id) }
+        list.tasks.forEach { reminders.cancel(taskID: $0.id) }
         context.delete(list)
         commit()
     }
@@ -171,7 +181,6 @@ final class SwiftDataRepository: TaskRepository, TaskListRepository {
     // MARK: - Внутреннее
 
     private func apply(_ draft: TaskDraft, to item: TaskItem) {
-        let calendar = Calendar.current
         item.title = draft.title
         item.notes = draft.notes
         item.priority = draft.priority
@@ -187,9 +196,9 @@ final class SwiftDataRepository: TaskRepository, TaskListRepository {
         item.repeatRule = draft.repeatRule
         item.list = draft.list
         if item.isCompleted != draft.isCompleted {
-            item.setCompleted(draft.isCompleted)
+            item.setCompleted(draft.isCompleted, at: clock.now)
         }
-        item.updatedAt = .now
+        item.updatedAt = clock.now
         syncSubtasks(draft.subtasks, on: item)
     }
 
@@ -199,8 +208,8 @@ final class SwiftDataRepository: TaskRepository, TaskListRepository {
         var draft = TaskSnapshot(task).draft
         draft.dueDate = nextDue
         if let endDay = task.endDay {
-            let span = endDay.timeIntervalSince(Calendar.current.startOfDay(for: due))
-            draft.endDay = Calendar.current.startOfDay(for: nextDue).addingTimeInterval(span)
+            let span = endDay.timeIntervalSince(calendar.startOfDay(for: due))
+            draft.endDay = calendar.startOfDay(for: nextDue).addingTimeInterval(span)
         }
         draft.isCompleted = false
         draft.subtasks = draft.subtasks.map { SubtaskDraft(id: UUID(), title: $0.title, isCompleted: false) }
@@ -232,8 +241,8 @@ final class SwiftDataRepository: TaskRepository, TaskListRepository {
     }
 
     private func updateReminder(for task: TaskItem) {
-        let fireDate = remindersEnabled ? task.reminderDate : nil
-        NotificationScheduler.reschedule(id: task.id, title: task.title, fireDate: fireDate)
+        let fireDate = remindersEnabled ? task.reminderDate(now: clock.now) : nil
+        reminders.reschedule(taskID: task.id, title: task.title, fireDate: fireDate)
     }
 
     private func commit() {

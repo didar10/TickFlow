@@ -12,11 +12,21 @@ final class SwiftDataHabitRepository: HabitRepository {
     @ObservationIgnored var remindersEnabled = true
 
     @ObservationIgnored private let context: ModelContext
-    @ObservationIgnored private let calendar = Calendar.current
+    @ObservationIgnored private let clock: any AppClock
+    @ObservationIgnored private let calendar: Calendar
+    @ObservationIgnored private let reminders: any ReminderScheduling
     @ObservationIgnored private let logger = Logger(subsystem: "com.ahito.TickFlow", category: "HabitRepository")
 
-    init(context: ModelContext) {
+    init(
+        context: ModelContext,
+        clock: any AppClock = SystemClock(),
+        calendar: Calendar = .current,
+        reminders: any ReminderScheduling = SystemReminderScheduler()
+    ) {
         self.context = context
+        self.clock = clock
+        self.calendar = calendar
+        self.reminders = reminders
         reload()
     }
 
@@ -34,7 +44,7 @@ final class SwiftDataHabitRepository: HabitRepository {
             item = Habit(
                 name: draft.name, symbolName: draft.symbolName, colorHex: draft.colorHex,
                 kind: draft.kind, target: draft.target, unit: draft.unit, step: draft.step,
-                frequency: draft.frequency, startDate: calendar.startOfDay(for: .now),
+                frequency: draft.frequency, startDate: calendar.startOfDay(for: clock.now),
                 sortOrder: (habits.map(\.sortOrder).max() ?? 0) + 1
             )
             context.insert(item)
@@ -57,7 +67,7 @@ final class SwiftDataHabitRepository: HabitRepository {
     }
 
     func delete(_ habit: Habit) {
-        NotificationScheduler.cancelHabit(id: habit.id)
+        reminders.cancelHabit(id: habit.id)
         context.delete(habit)
         commit()
     }
@@ -95,10 +105,10 @@ final class SwiftDataHabitRepository: HabitRepository {
 
     private func updateReminder(for habit: Habit) {
         guard remindersEnabled, habit.reminderEnabled else {
-            NotificationScheduler.cancelHabit(id: habit.id)
+            reminders.cancelHabit(id: habit.id)
             return
         }
-        NotificationScheduler.scheduleHabit(
+        reminders.scheduleHabit(
             id: habit.id,
             name: habit.name,
             minute: habit.reminderMinute,

@@ -61,8 +61,16 @@ final class InsightsViewModel {
     @ObservationIgnored private let habits: any HabitRepository
     @ObservationIgnored private let settings: any SettingsRepository
     @ObservationIgnored private let navigator: AppNavigator
+    @ObservationIgnored private let clock: any AppClock
 
-    init(tasks: any TaskRepository, habits: any HabitRepository, settings: any SettingsRepository, navigator: AppNavigator) {
+    init(
+        tasks: any TaskRepository,
+        habits: any HabitRepository,
+        settings: any SettingsRepository,
+        navigator: AppNavigator,
+        clock: any AppClock = SystemClock()
+    ) {
+        self.clock = clock
         self.tasks = tasks
         self.habits = habits
         self.settings = settings
@@ -78,7 +86,7 @@ final class InsightsViewModel {
     var hasHabits: Bool { !habits.habits.isEmpty }
 
     var report: Report {
-        let format = DisplayFormatter(settings: settings.settings)
+        let format = DisplayFormatter(settings: settings.settings, clock: clock)
         let calendar = format.calendar
         let today = format.today
         let interval = period(for: range, offset: 0, today: today, calendar: calendar)

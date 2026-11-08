@@ -16,11 +16,21 @@
 
 ## Этап 0. Инфраструктура и подготовка кода
 
+> **Готово.** Таргет `TickFlowTests` в схеме, покрытие собирается только по `TickFlow`.
+> `AppClock` / `SystemClock`, `ReminderScheduling` / `SystemReminderScheduler` внедряются через `AppDependencies`
+> в репозитории и ViewModel (по умолчанию — системные реализации). Часы передаются в `DisplayFormatter`,
+> поэтому «сегодня» во всех экранах берётся из них. Под тестами `TickFlowApp` не создаёт базу и зависимости.
+> Помощники: `TestCalendar`, `date(_:)`, `FixedClock`, `makeInMemoryContainer()`, `makeIsolatedDefaults()`,
+> `FakeTaskRepository` (заодно `TaskListRepository`), `FakeHabitRepository`, `FakeSettingsRepository`, `FakeReminderScheduler`.
+> Дымовые тесты — `InfrastructureTests`.
+> Осталось на `Calendar.current` / `.now`: статический `DateFormatting` в `Theme.swift`, `TaskEditorRequest.new(day:)`,
+> `TaskDraft.hasSameSchedule` и `NotificationScheduler` (он за протоколом). Чинить при тестах этапа 1, если понадобится.
+
 ### 0.1 Таргет
 - Добавить таргет `TickFlowTests` (Unit Testing Bundle, **Swift Testing**: `@Test`, `#expect`), host — `TickFlow`, `@testable import TickFlow`.
 - Включить таргет в схему `TickFlow`, включить сбор покрытия.
 - Папка `TickFlowTests/` — синхронизированная группа, как основной таргет.
-- Запуск: `xcodebuild test -project TickFlow.xcodeproj -scheme TickFlow -destination 'platform=iOS Simulator,name=iPhone 17 Pro'`.
+- Запуск: `xcodebuild test -project TickFlow.xcodeproj -scheme TickFlow -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.2' -enableCodeCoverage YES`. Без `OS=` берётся последняя версия, а на ней такого симулятора может не быть.
 - На тестовом запуске не выполнять `bootstrap()` / сид примера данных (проверять `XCTestConfigurationFilePath` или аргумент запуска), чтобы приложение-хост не трогало UserDefaults и уведомления.
 
 ### 0.2 Общие помощники (`TickFlowTests/Support/`)

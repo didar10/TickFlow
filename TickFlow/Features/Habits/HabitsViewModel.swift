@@ -66,15 +66,23 @@ final class HabitsViewModel {
     @ObservationIgnored private let settings: any SettingsRepository
     @ObservationIgnored private let toasts: ToastCenter
     @ObservationIgnored private let navigator: AppNavigator
+    @ObservationIgnored private let clock: any AppClock
 
-    init(habits: any HabitRepository, settings: any SettingsRepository, toasts: ToastCenter, navigator: AppNavigator) {
+    init(
+        habits: any HabitRepository,
+        settings: any SettingsRepository,
+        toasts: ToastCenter,
+        navigator: AppNavigator,
+        clock: any AppClock = SystemClock()
+    ) {
+        self.clock = clock
         repository = habits
         self.settings = settings
         self.toasts = toasts
         self.navigator = navigator
     }
 
-    private var format: DisplayFormatter { DisplayFormatter(settings: settings.settings) }
+    private var format: DisplayFormatter { DisplayFormatter(settings: settings.settings, clock: clock) }
     private var text: HabitText { HabitText(format: format) }
 
     private func history(_ habit: Habit) -> HabitHistory {

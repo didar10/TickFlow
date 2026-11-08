@@ -5,20 +5,27 @@ import Foundation
 struct DisplayFormatter {
     let calendar: Calendar
     let uses24HourTime: Bool
+    let clock: any AppClock
     let locale = DisplayFormatter.appLocale
 
     /// Язык, на котором показан интерфейс (из Localizable.xcstrings), — даты и числа пишутся на нём же.
     static let appLocale = Locale(identifier: Bundle.main.preferredLocalizations.first ?? "ru")
 
-    init(settings: AppSettings, base: Calendar = .current) {
+    init(settings: AppSettings, base: Calendar = .current, clock: any AppClock = SystemClock()) {
         var calendar = base
         calendar.firstWeekday = settings.firstWeekday
         calendar.locale = DisplayFormatter.appLocale
         self.calendar = calendar
         uses24HourTime = settings.uses24HourTime
+        self.clock = clock
     }
 
-    var today: Date { calendar.startOfDay(for: .now) }
+    var now: Date { clock.now }
+    var today: Date { calendar.startOfDay(for: clock.now) }
+
+    func isToday(_ date: Date) -> Bool {
+        calendar.isDate(date, inSameDayAs: clock.now)
+    }
 
     // MARK: - Время
 
@@ -56,9 +63,12 @@ struct DisplayFormatter {
 
     /// "Сегодня", "Завтра", "Вчера" или "Пт, 7 нояб.".
     func relativeDay(_ date: Date) -> String {
-        if calendar.isDateInToday(date) { return L10n.Common.today }
-        if calendar.isDateInTomorrow(date) { return L10n.Common.tomorrow }
-        if calendar.isDateInYesterday(date) { return L10n.Common.yesterday }
+        switch calendar.dateComponents([.day], from: today, to: calendar.startOfDay(for: date)).day {
+        case 0: return L10n.Common.today
+        case 1: return L10n.Common.tomorrow
+        case -1: return L10n.Common.yesterday
+        default: break
+        }
         return weekdayAndDay(date)
     }
 
@@ -91,7 +101,7 @@ struct DisplayFormatter {
 
     /// "Ноябрь" или "Ноябрь 2027", если год не текущий.
     func monthTitle(_ date: Date) -> String {
-        calendar.isDate(date, equalTo: .now, toGranularity: .year)
+        calendar.isDate(date, equalTo: clock.now, toGranularity: .year)
             ? monthName(date)
             : monthName(date) + " " + String(calendar.component(.year, from: date))
     }

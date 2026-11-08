@@ -67,20 +67,24 @@ final class TaskItem {
         set { repeatRaw = newValue.rawValue }
     }
 
-    var isMultiDay: Bool {
+    var isMultiDay: Bool { isMultiDay(calendar: .current) }
+
+    func isMultiDay(calendar: Calendar) -> Bool {
         guard let dueDate, let endDay else { return false }
-        return !Calendar.current.isDate(dueDate, inSameDayAs: endDay)
+        return !calendar.isDate(dueDate, inSameDayAs: endDay)
     }
 
     /// Последний день задачи: `endDay` для многодневной, иначе день `dueDate`.
-    var lastDay: Date? {
+    var lastDay: Date? { lastDay(calendar: .current) }
+
+    func lastDay(calendar: Calendar) -> Date? {
         guard let dueDate else { return nil }
-        return Calendar.current.startOfDay(for: endDay ?? dueDate)
+        return calendar.startOfDay(for: endDay ?? dueDate)
     }
 
     /// Попадает ли задача на день (учитывая многодневные).
     func occurs(on day: Date, calendar: Calendar = .current) -> Bool {
-        guard let dueDate, let lastDay else { return false }
+        guard let dueDate, let lastDay = lastDay(calendar: calendar) else { return false }
         let target = calendar.startOfDay(for: day)
         return calendar.startOfDay(for: dueDate) <= target && target <= lastDay
     }
@@ -95,39 +99,43 @@ final class TaskItem {
     }
 
     /// Просрочена: последний день задачи уже прошёл. Сегодняшние задачи не считаются просроченными.
-    var isOverdue: Bool {
-        guard !isCompleted, let lastDay else { return false }
-        return lastDay < Calendar.current.startOfDay(for: .now)
+    var isOverdue: Bool { isOverdue(now: .now, calendar: .current) }
+
+    func isOverdue(now: Date, calendar: Calendar) -> Bool {
+        guard !isCompleted, let lastDay = lastDay(calendar: calendar) else { return false }
+        return lastDay < calendar.startOfDay(for: now)
     }
 
     /// Момент срабатывания напоминания: только для задач со временем и выбранным напоминанием.
-    var reminderDate: Date? {
+    var reminderDate: Date? { reminderDate(now: .now) }
+
+    func reminderDate(now: Date) -> Date? {
         guard let dueDate, hasTime, !isCompleted, let offset = reminder.offset else { return nil }
         let fire = dueDate.addingTimeInterval(offset)
-        return fire > .now ? fire : nil
+        return fire > now ? fire : nil
     }
 
     var completedSubtaskCount: Int {
         subtasks.filter(\.isCompleted).count
     }
 
-    func setCompleted(_ value: Bool) {
+    func setCompleted(_ value: Bool, at now: Date = .now) {
         isCompleted = value
-        completedAt = value ? .now : nil
+        completedAt = value ? now : nil
     }
 
     /// Переносит на сегодня, сохраняя время, если оно указано.
-    func moveToToday(calendar: Calendar = .current) {
+    func moveToToday(calendar: Calendar = .current, now: Date = .now) {
         if hasTime, let dueDate {
             let components = calendar.dateComponents([.hour, .minute], from: dueDate)
             self.dueDate = calendar.date(
                 bySettingHour: components.hour ?? 9,
                 minute: components.minute ?? 0,
                 second: 0,
-                of: .now
+                of: now
             )
         } else {
-            dueDate = calendar.startOfDay(for: .now)
+            dueDate = calendar.startOfDay(for: now)
         }
         endDay = nil
     }
