@@ -70,6 +70,7 @@ final class TaskEditorViewModel {
     private(set) var schedule: DateSelection
     private(set) var priority: Priority
     private(set) var categoryID: UUID?
+    var isNewCategoryPresented = false
     private(set) var isCategoryExplicit: Bool
     private(set) var isCompleted: Bool
     var picker: DateTimePickerViewModel?
@@ -237,6 +238,16 @@ final class TaskEditorViewModel {
     func selectCategory(_ id: UUID) {
         categoryID = id
         isCategoryExplicit = true
+    }
+
+    /// «Новая категория…» в меню категории.
+    func requestNewCategory() {
+        isNewCategoryPresented = true
+    }
+
+    /// Созданная из редактора категория сразу выбирается в задаче.
+    func categoryCreated(_ list: TaskList) {
+        selectCategory(list.id)
     }
 
     func selectPriority(_ value: Priority) {

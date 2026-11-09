@@ -7,6 +7,8 @@ protocol TaskListRepository: AnyObject {
     var lists: [TaskList] { get }
 
     func insert(_ lists: [TaskList])
-    func save(_ draft: TaskListDraft, to list: TaskList?)
+    /// Возвращает сохранённую категорию: новую или ту же.
+    @discardableResult
+    func save(_ draft: TaskListDraft, to list: TaskList?) -> TaskList
     func delete(_ list: TaskList)
 }

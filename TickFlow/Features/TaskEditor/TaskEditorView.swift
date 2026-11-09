@@ -4,6 +4,7 @@ import SwiftUI
 /// или полноэкранный редактор. Одна ViewModel переходит из листа в полный экран.
 struct TaskEditorView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppDependencies.self) private var dependencies
     @State private var viewModel: TaskEditorViewModel
     @FocusState private var focus: TaskEditorViewModel.Field?
     private let container: TaskEditorViewModel.Mode
@@ -33,6 +34,9 @@ struct TaskEditorView: View {
         }
         .sheet(item: $viewModel.picker) { picker in
             DateTimePickerView(viewModel: picker, onCancel: viewModel.closePicker)
+        }
+        .sheet(isPresented: $viewModel.isNewCategoryPresented) {
+            ListEditorView(viewModel: dependencies.makeListEditorViewModel(list: nil, onSaved: viewModel.categoryCreated))
         }
         .alert(
             L10n.Common.timeConflict,
@@ -395,6 +399,8 @@ struct TaskEditorView: View {
                     }
                 }
             }
+            Divider()
+            Button(L10n.Lists.newCategoryEllipsis, systemImage: "plus", action: viewModel.requestNewCategory)
         } label: {
             label()
         }

@@ -80,6 +80,16 @@ struct ListEditorView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(AppColors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
+                    VStack(alignment: .leading, spacing: 6) {
+                        Toggle(L10n.Lists.trackByDefault, isOn: $viewModel.tracksTimeByDefault)
+                            .font(AppFont.body)
+                            .foregroundStyle(AppColors.label)
+                            .tint(AppColors.accent)
+                            .settingsRow()
+                            .background(AppColors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        SettingsFootnote(viewModel.trackingFootnote)
+                    }
+
                     if viewModel.canDelete {
                         Button(L10n.Lists.deleteCategory, role: .destructive, action: viewModel.requestDelete)
                             .font(.system(size: 17))

@@ -43,6 +43,13 @@ struct ProfileView: View {
                         .buttonStyle(.plain)
                     }
 
+                    SettingsGroup(L10n.Profile.organize) {
+                        NavigationLink(value: ProfileRoute.categories) {
+                            ValueRow(L10n.Common.categories, value: viewModel.categoryCount, showsChevron: true)
+                        }
+                        .buttonStyle(.plain)
+                    }
+
                     SettingsGroup(L10n.Profile.appearance) {
                         PickerRow(L10n.Profile.theme, selection: $viewModel.theme,
                                   options: viewModel.themeOptions.map { ($0, $0.title) })
@@ -83,35 +90,6 @@ struct ProfileView: View {
                         SettingsDivider()
                         ToggleRow(L10n.Profile.habitReminders, isOn: $viewModel.habitRemindersEnabled)
                             .disabled(viewModel.notificationsDenied)
-                    }
-
-                    SettingsGroup(L10n.Common.categories) {
-                        ForEach(viewModel.categories) { category in
-                            Button { viewModel.editCategory(category.id) } label: {
-                                HStack(spacing: 10) {
-                                    Circle().fill(Color(hex: category.colorHex)).frame(width: 10, height: 10)
-                                    Text(category.name).foregroundStyle(AppColors.label)
-                                    Spacer()
-                                    Text(category.count).foregroundStyle(AppColors.textSecondary)
-                                    Chevron()
-                                }
-                                .font(AppFont.body)
-                                .settingsRow()
-                            }
-                            .buttonStyle(.plain)
-                            SettingsDivider()
-                        }
-                        Button(action: viewModel.addCategory) {
-                            HStack(spacing: 10) {
-                                Image(systemName: "plus").font(.system(size: 14, weight: .semibold))
-                                Text(L10n.Lists.newCategory)
-                                Spacer()
-                            }
-                            .font(AppFont.body)
-                            .foregroundStyle(AppColors.accent)
-                            .settingsRow()
-                        }
-                        .buttonStyle(.plain)
                     }
 
                     SettingsGroup(L10n.Tab.habits) {
@@ -155,11 +133,10 @@ struct ProfileView: View {
                 switch route {
                 case .insights:
                     InsightsView(viewModel: dependencies.makeInsightsViewModel())
+                case .categories:
+                    CategoriesView(viewModel: dependencies.makeCategoriesViewModel())
                 }
             }
-        }
-        .sheet(item: $viewModel.listEditorRequest) { request in
-            ListEditorView(viewModel: dependencies.makeListEditorViewModel(list: request.list))
         }
         .confirmationDialog(L10n.Profile.loadSampleQuestion, isPresented: $viewModel.isLoadSampleConfirmationPresented,
                             titleVisibility: .visible) {
@@ -173,6 +150,7 @@ struct ProfileView: View {
 
 private enum ProfileRoute: Hashable {
     case insights
+    case categories
 }
 
 /// Карточка пользователя. Учётной записи нет — данные хранятся на устройстве.
@@ -203,126 +181,5 @@ private struct ProfileCard: View {
         .padding(.vertical, 12)
         .background(AppColors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .contentShape(Rectangle())
-    }
-}
-
-// MARK: - Строки
-
-private struct SettingsGroup<Content: View>: View {
-    let title: String
-    @ViewBuilder var content: Content
-
-    init(_ title: String, @ViewBuilder content: () -> Content) {
-        self.title = title
-        self.content = content()
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title.uppercased())
-                .font(AppFont.footnote)
-                .tracking(0.3)
-                .foregroundStyle(AppColors.textSecondary)
-                .padding(.horizontal, 16)
-            VStack(spacing: 0) { content }
-                .background(AppColors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        }
-    }
-}
-
-private struct ToggleRow: View {
-    let title: String
-    @Binding var isOn: Bool
-
-    init(_ title: String, isOn: Binding<Bool>) {
-        self.title = title
-        _isOn = isOn
-    }
-
-    var body: some View {
-        Toggle(title, isOn: $isOn)
-            .font(AppFont.body)
-            .foregroundStyle(AppColors.label)
-            .tint(AppColors.accent)
-            .settingsRow()
-    }
-}
-
-private struct PickerRow<Value: Hashable>: View {
-    let title: String
-    @Binding var selection: Value
-    let options: [(value: Value, title: String)]
-
-    init(_ title: String, selection: Binding<Value>, options: [(value: Value, title: String)]) {
-        self.title = title
-        _selection = selection
-        self.options = options
-    }
-
-    var body: some View {
-        HStack {
-            Text(title).font(AppFont.body).foregroundStyle(AppColors.label)
-            Spacer(minLength: 8)
-            Menu {
-                Picker(title, selection: $selection) {
-                    ForEach(options, id: \.value) { option in
-                        Text(option.title).tag(option.value)
-                    }
-                }
-            } label: {
-                HStack(spacing: 4) {
-                    Text(options.first { $0.value == selection }?.title ?? "")
-                    Image(systemName: "chevron.up.chevron.down").font(.system(size: 11, weight: .semibold))
-                }
-                .font(AppFont.body)
-                .foregroundStyle(AppColors.textSecondary)
-            }
-        }
-        .settingsRow()
-    }
-}
-
-private struct ValueRow: View {
-    let title: String
-    let value: String
-    var showsChevron = false
-
-    init(_ title: String, value: String, showsChevron: Bool = false) {
-        self.title = title
-        self.value = value
-        self.showsChevron = showsChevron
-    }
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Text(title).foregroundStyle(AppColors.label)
-            Spacer()
-            Text(value).foregroundStyle(AppColors.textSecondary)
-            if showsChevron { Chevron() }
-        }
-        .font(AppFont.body)
-        .settingsRow()
-    }
-}
-
-private struct Chevron: View {
-    var body: some View {
-        Image(systemName: "chevron.right")
-            .font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(AppColors.chevron)
-    }
-}
-
-private struct SettingsDivider: View {
-    var body: some View {
-        Divider().overlay(AppColors.separator).padding(.leading, 16)
-    }
-}
-
-private extension View {
-    func settingsRow() -> some View {
-        padding(.horizontal, 16)
-            .frame(minHeight: 46)
-            .contentShape(Rectangle())
     }
 }

@@ -194,7 +194,11 @@ final class AppDependencies {
         )
     }
 
-    func makeListEditorViewModel(list: TaskList?) -> ListEditorViewModel {
-        ListEditorViewModel(list: list, lists: repository, toasts: toasts)
+    func makeListEditorViewModel(list: TaskList?, onSaved: ((TaskList) -> Void)? = nil) -> ListEditorViewModel {
+        ListEditorViewModel(list: list, lists: repository, toasts: toasts, onSaved: onSaved)
+    }
+
+    func makeCategoriesViewModel() -> CategoriesViewModel {
+        CategoriesViewModel(lists: repository)
     }
 }

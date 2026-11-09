@@ -167,24 +167,27 @@ final class SwiftDataRepository: TaskRepository, TaskListRepository {
         commit()
     }
 
-    func save(_ draft: TaskListDraft, to list: TaskList?) {
+    @discardableResult
+    func save(_ draft: TaskListDraft, to list: TaskList?) -> TaskList {
+        let item: TaskList
         if let list {
-            list.name = draft.name
-            list.colorHex = draft.colorHex
-            list.symbolName = draft.symbolName
-            list.tracksTimeByDefault = draft.tracksTimeByDefault
+            item = list
+            item.name = draft.name
+            item.colorHex = draft.colorHex
+            item.symbolName = draft.symbolName
+            item.tracksTimeByDefault = draft.tracksTimeByDefault
         } else {
-            context.insert(
-                TaskList(
-                    name: draft.name,
-                    colorHex: draft.colorHex,
-                    symbolName: draft.symbolName,
-                    sortOrder: (lists.map(\.sortOrder).max() ?? 0) + 1,
-                    tracksTimeByDefault: draft.tracksTimeByDefault
-                )
+            item = TaskList(
+                name: draft.name,
+                colorHex: draft.colorHex,
+                symbolName: draft.symbolName,
+                sortOrder: (lists.map(\.sortOrder).max() ?? 0) + 1,
+                tracksTimeByDefault: draft.tracksTimeByDefault
             )
+            context.insert(item)
         }
         commit()
+        return item
     }
 
     func delete(_ list: TaskList) {

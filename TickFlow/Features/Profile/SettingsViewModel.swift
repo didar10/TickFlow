@@ -2,24 +2,10 @@ import Foundation
 import Observation
 import UIKit
 
-/// Что открыть в редакторе категории.
-struct ListEditorRequest: Identifiable {
-    let id = UUID()
-    let list: TaskList?
-}
-
 /// Настройки: оформление, календарь, уведомления, категории, привычки и данные.
 @MainActor
 @Observable
 final class SettingsViewModel {
-    struct CategoryRow: Identifiable {
-        let id: UUID
-        let name: String
-        let colorHex: String
-        let count: String
-    }
-
-    var listEditorRequest: ListEditorRequest?
     var isLoadSampleConfirmationPresented = false
     private(set) var notificationsDenied = false
 
@@ -149,20 +135,8 @@ final class SettingsViewModel {
 
     // MARK: - Категории
 
-    var categories: [CategoryRow] {
-        lists.lists.map { list in
-            let count = list.tasks.count
-            return CategoryRow(id: list.id, name: list.name, colorHex: list.colorHex, count: L10n.Plural.tasks(count))
-        }
-    }
-
-    func editCategory(_ id: UUID) {
-        listEditorRequest = ListEditorRequest(list: lists.lists.first { $0.id == id })
-    }
-
-    func addCategory() {
-        listEditorRequest = ListEditorRequest(list: nil)
-    }
+    /// Сколько категорий — значение строки «Категории».
+    var categoryCount: String { String(lists.lists.count) }
 
     // MARK: - Привычки
 

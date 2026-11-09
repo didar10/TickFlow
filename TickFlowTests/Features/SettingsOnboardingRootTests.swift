@@ -122,23 +122,9 @@ struct SettingsViewModelTests {
         #expect(screen.taskRemindersEnabled)
     }
 
-    @Test func categories() throws {
-        let work = fixture.list("Работа", color: "#111111")
-        fixture.task("A", list: work)
-        fixture.task("B", list: work)
-        let home = fixture.list("Дом")
-        tasks.insert([work, home])
-        let screen = screen()
-
-        #expect(screen.categories.map(\.name) == ["Работа", "Дом"])
-        #expect(screen.categories.map(\.count) == ["2 задачи", "0 задач"])
-        #expect(screen.categories.first?.colorHex == "#111111")
-
-        screen.editCategory(work.id)
-        #expect(screen.listEditorRequest?.list === work)
-        screen.addCategory()
-        let request = try #require(screen.listEditorRequest)
-        #expect(request.list == nil)
+    @Test func categoryCount() {
+        tasks.insert([fixture.list("Работа"), fixture.list("Дом")])
+        #expect(screen().categoryCount == "2")
     }
 
     @Test func sampleDataAfterConfirmation() {

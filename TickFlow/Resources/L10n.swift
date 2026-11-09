@@ -232,6 +232,21 @@ enum L10n {
         static func deletedToast(_ name: String) -> String {
             String(localized: "lists.deletedToast", defaultValue: "Категория «\(name)» удалена")
         }
+        static var trackByDefault: String { String(localized: "lists.trackByDefault", defaultValue: "Учёт времени по умолчанию") }
+        static var trackingOnFootnote: String { String(localized: "lists.trackingOnFootnote", defaultValue: "Задачи категории показывают таймер, «Начать фокус» и потраченное время против оценки.") }
+        static var trackingOffFootnote: String { String(localized: "lists.trackingOffFootnote", defaultValue: "Задачи категории не показывают учёт времени. Любую задачу можно настроить отдельно в её меню ⋯.") }
+        static func overrides(_ count: Int) -> String {
+            String(localized: "lists.overrides", defaultValue: "\(count) задачи настроены иначе.")
+        }
+        static func createdToast(_ name: String) -> String {
+            String(localized: "lists.createdToast", defaultValue: "Категория «\(name)» создана")
+        }
+        static var newCategoryEllipsis: String { String(localized: "lists.newCategoryEllipsis", defaultValue: "Новая категория…") }
+        static var trackingBadge: String { String(localized: "lists.trackingBadge", defaultValue: "Учёт") }
+        static var screenFootnote: String { String(localized: "lists.screenFootnote", defaultValue: "Нажмите на категорию, чтобы изменить её и включить или выключить учёт времени для её задач. Любую задачу можно настроить отдельно в её меню ⋯.") }
+        static func openTasks(_ count: Int) -> String {
+            String(localized: "lists.openTasks", defaultValue: "\(count) открытой задачи")
+        }
     }
 
     enum Insights {
@@ -428,6 +443,7 @@ enum L10n {
         static var storedOnDevice: String { String(localized: "profile.storedOnDevice", defaultValue: "Данные хранятся на этом iPhone") }
         static var viewInsights: String { String(localized: "profile.viewInsights", defaultValue: "Посмотреть аналитику") }
         static var sampleLoaded: String { String(localized: "profile.sampleLoaded", defaultValue: "Пример данных загружен") }
+        static var organize: String { String(localized: "profile.organize", defaultValue: "Организация") }
     }
 
     enum Theme {

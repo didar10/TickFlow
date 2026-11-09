@@ -132,15 +132,20 @@ final class FakeTaskRepository: TaskRepository, TaskListRepository {
         self.lists += lists
     }
 
-    func save(_ draft: TaskListDraft, to list: TaskList?) {
+    @discardableResult
+    func save(_ draft: TaskListDraft, to list: TaskList?) -> TaskList {
         savedListDrafts.append((draft, list))
         if let list {
             list.name = draft.name
             list.colorHex = draft.colorHex
             list.symbolName = draft.symbolName
-        } else {
-            lists.append(TaskList(name: draft.name, colorHex: draft.colorHex, symbolName: draft.symbolName))
+            list.tracksTimeByDefault = draft.tracksTimeByDefault
+            return list
         }
+        let item = TaskList(name: draft.name, colorHex: draft.colorHex, symbolName: draft.symbolName,
+                            tracksTimeByDefault: draft.tracksTimeByDefault)
+        lists.append(item)
+        return item
     }
 
     func delete(_ list: TaskList) {
