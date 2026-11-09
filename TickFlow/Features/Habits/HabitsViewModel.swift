@@ -66,15 +66,23 @@ final class HabitsViewModel {
     @ObservationIgnored private let settings: any SettingsRepository
     @ObservationIgnored private let toasts: ToastCenter
     @ObservationIgnored private let navigator: AppNavigator
+    @ObservationIgnored private let clock: any AppClock
 
-    init(habits: any HabitRepository, settings: any SettingsRepository, toasts: ToastCenter, navigator: AppNavigator) {
+    init(
+        habits: any HabitRepository,
+        settings: any SettingsRepository,
+        toasts: ToastCenter,
+        navigator: AppNavigator,
+        clock: any AppClock = SystemClock()
+    ) {
+        self.clock = clock
         repository = habits
         self.settings = settings
         self.toasts = toasts
         self.navigator = navigator
     }
 
-    private var format: DisplayFormatter { DisplayFormatter(settings: settings.settings) }
+    private var format: DisplayFormatter { DisplayFormatter(settings: settings.settings, clock: clock) }
     private var text: HabitText { HabitText(format: format) }
 
     private func history(_ habit: Habit) -> HabitHistory {
@@ -192,11 +200,13 @@ final class HabitsViewModel {
         let before = history(habit)
         let previous = before.value(on: today)
         let wasSkipped = before.isSkipped(on: today)
-        let next = before.isDone(on: today) ? 0 : min(habit.target, previous + habit.step)
+        // `HabitHistory` хранит ссылки на живые отметки: после `setValue` `before` видит новое значение.
+        let wasDone = before.isDone(on: today)
+        let next = wasDone ? 0 : min(habit.target, previous + habit.step)
         repository.setValue(next, for: habit, on: today)
 
         let after = history(habit)
-        guard !before.isDone(on: today), after.isDone(on: today) else { return }
+        guard !wasDone, after.isDone(on: today) else { return }
         toasts.show(L10n.Habits.doneToast(habit.name, text.streak(after.stats))) { [repository] in
             if wasSkipped {
                 repository.setSkipped(true, for: habit, on: today)

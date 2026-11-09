@@ -1,7 +1,10 @@
 # TickFlow — план покрытия юнит-тестами
 
-Сейчас тестов и тестового таргета нет. План идёт от дешёвой чистой логики к view model:
-каждый этап сам по себе приносит пользу, и его можно влить отдельным PR.
+План шёл от дешёвой чистой логики к view model: каждый этап сам по себе приносит пользу
+и вливался отдельным PR.
+
+> **Статус: этапы 0–3 выполнены.** 508 тестов (Swift Testing) в `TickFlowTests/`, все цели покрытия достигнуты.
+> Осталось только CI (см. «Отложено: CI»). UI- и snapshot-тесты — вне плана.
 
 **Цели покрытия** (`xcodebuild test -enableCodeCoverage YES`):
 
@@ -16,11 +19,21 @@
 
 ## Этап 0. Инфраструктура и подготовка кода
 
+> **Готово.** Таргет `TickFlowTests` в схеме, покрытие собирается только по `TickFlow`.
+> `AppClock` / `SystemClock`, `ReminderScheduling` / `SystemReminderScheduler` внедряются через `AppDependencies`
+> в репозитории и ViewModel (по умолчанию — системные реализации). Часы передаются в `DisplayFormatter`,
+> поэтому «сегодня» во всех экранах берётся из них. Под тестами `TickFlowApp` не создаёт базу и зависимости.
+> Помощники: `TestCalendar`, `date(_:)`, `FixedClock`, `makeInMemoryContainer()`, `makeIsolatedDefaults()`,
+> `FakeTaskRepository` (заодно `TaskListRepository`), `FakeHabitRepository`, `FakeSettingsRepository`, `FakeReminderScheduler`.
+> Дымовые тесты — `InfrastructureTests`.
+> Осталось на `Calendar.current` / `.now`: статический `DateFormatting` в `Theme.swift`, `TaskEditorRequest.new(day:)`,
+> `TaskDraft.hasSameSchedule` и `NotificationScheduler` (он за протоколом). Чинить при тестах этапа 1, если понадобится.
+
 ### 0.1 Таргет
 - Добавить таргет `TickFlowTests` (Unit Testing Bundle, **Swift Testing**: `@Test`, `#expect`), host — `TickFlow`, `@testable import TickFlow`.
 - Включить таргет в схему `TickFlow`, включить сбор покрытия.
 - Папка `TickFlowTests/` — синхронизированная группа, как основной таргет.
-- Запуск: `xcodebuild test -project TickFlow.xcodeproj -scheme TickFlow -destination 'platform=iOS Simulator,name=iPhone 17 Pro'`.
+- Запуск: `xcodebuild test -project TickFlow.xcodeproj -scheme TickFlow -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.2' -enableCodeCoverage YES`. Без `OS=` берётся последняя версия, а на ней такого симулятора может не быть.
 - На тестовом запуске не выполнять `bootstrap()` / сид примера данных (проверять `XCTestConfigurationFilePath` или аргумент запуска), чтобы приложение-хост не трогало UserDefaults и уведомления.
 
 ### 0.2 Общие помощники (`TickFlowTests/Support/`)
@@ -38,6 +51,15 @@
 ---
 
 ## Этап 1. Чистая логика (самая высокая ценность, без зависимостей)
+
+> **Готово.** 227 тестов (вместе с `InfrastructureTests`). Покрытие: `ConflictDetector`, `TimeGridLayout`, `DateSelection`,
+> `TaskRowItem`, `TaskFilterStore`, `AppSettings`, `TaskOptions`, `AppNavigator` — 100 %; `DisplayFormatter` 97 %,
+> `Habit` 97 %, `ToastCenter` 95 %, `TaskItem` 94 %, `ScheduleCommit` 94 %, `HabitHistory` 92 %.
+> Тесты идут на русском: язык и регион тестового запуска заданы в схеме (`ru` / `RU`).
+> Для этого в коде: `DisplayFormatter` принимает `locale`, `ToastCenter` — функцию задержки (в тестах `ManualSleeper`),
+> `ConflictDetector.conflict(for:in:calendar:)`, `gapNote` и `dueLabel` больше не берут `Calendar.current`.
+> `L10nTests` читают `L10n.swift` и `Localizable.xcstrings` по `#filePath` — работает в симуляторе, не на устройстве.
+> Зафиксированное поведение: ежемесячный повтор после 31 янв. → 28 фев. продолжается с 28-го (28 мар.).
 
 | Тестовый файл | Что проверяем | Ключевые случаи |
 |---|---|---|
@@ -67,6 +89,16 @@
 
 ## Этап 2. Репозитории и сервисы (SwiftData в памяти)
 
+> **Готово.** 56 тестов, всего 283. Покрытие: `SwiftDataRepository` 98 %, `SwiftDataHabitRepository` 96 %,
+> `UserDefaultsSettingsRepository`, `TaskDraft`, `ExportService` — 100 % (включая `ExportFile` через `exported(as:)`).
+> `ExportService.makeJSON` принимает `exportedAt`, `SettingsViewModel` передаёт время из часов.
+> `SystemReminderScheduler` не покрыт — это тонкая обёртка над `UNUserNotificationCenter` (см. «Не входит в план»).
+> Зафиксированное текущее поведение (если оно не задумано — отдельная правка):
+> - `duplicate` копирует отметки подзадач как есть, сбрасывает только выполнение самой задачи;
+> - пропуск дня привычки обнуляет уже внесённое значение;
+> - `setDuration` не перепланирует напоминание (оно зависит только от начала);
+> - удаление категории каскадно удаляет её задачи и снимает их напоминания.
+
 | Тестовый файл | Что проверяем | Ключевые случаи |
 |---|---|---|
 | `SwiftDataRepositoryTests` | `save(_:to:)` | новая задача и редактирование; подзадачи: добавление, удаление, порядок; категория; `sortOrder` растёт |
@@ -82,6 +114,28 @@
 ---
 
 ## Этап 3. ViewModel (фейки репозиториев, фиксированные часы)
+
+> **Готово.** 220 тестов, всего 503. Покрытие всех ViewModel — 90–100 %: `TaskEditor` 96 %, `Calendar` 96 %,
+> `DateTimePicker` 91 %, `Tasks` 99 %, `Habits` 99 %, `HabitDetail` 94 %, `HabitEditor` 99 %, `Insights` 95 %,
+> `Settings` 98 %, `Onboarding` 99 %, `Search`, `FilterSheet`, `Root` 100 %, `ListEditor` 98 %.
+>
+> Решения:
+> - Тестовый запуск закреплён на `TZ=Europe/Moscow` (env в TestAction схемы). ViewModel берут `Calendar.current`,
+>   поэтому без этого даты зависели бы от машины. Проверяет `InfrastructureTests.testRunEnvironmentIsPinned`.
+> - Экраны привычек тестируются с настоящим `SwiftDataHabitRepository` в памяти: статистика зависит от того, как
+>   репозиторий хранит отметки (удаление при 0, сброс пропуска). Остальные ViewModel работают с фейками.
+> - `QuickTaskPanel.swift` показывает низкое покрытие, потому что в нём лежит SwiftUI-вид; сам `QuickEditorHost` покрыт полностью.
+>
+> Найденные и исправленные ошибки:
+> - `HabitsViewModel.tap`: если на сегодня уже была отметка (частичный прогресс или пропуск), после
+>   выполнения не показывался тост с «Отменить». `HabitHistory` держит ссылки на живые `HabitLog`,
+>   поэтому `before.isDone` читался уже после изменения. Теперь флаг запоминается до `setValue`.
+> - `insights.deltaPercent`: в каталоге стоял одиночный `%`, и знак процента пропадал («+100 к прошлому периоду»).
+>   Исправлено на `%%` (ru и en); `L10nTests.literalPercentIsEscaped` проверяет весь каталог.
+>
+> Текущее поведение, зафиксированное тестами (возможно, стоит поменять):
+> - Имя файла экспорта берёт дату в UTC: ночью по Москве это вчерашний день (`TickFlow-2026-11-07.json` в 01:00 08.11).
+> - У новой привычки без серии подпись «Ещё 0 дней до рекорда».
 
 Порядок — по сложности логики и риску регрессий.
 
@@ -107,15 +161,32 @@
 ## Не входит в план
 - Вёрстка SwiftUI и анимации. Позже можно добавить UI-тесты для сценариев «создать задачу», «перетащить в календаре», «отметить привычку» и snapshot-тесты для светлой и тёмной темы.
 - Реальная работа `UNUserNotificationCenter` (за протоколом `ReminderScheduling`).
-- `SeedService` — только дымовой тест: сид в пустую базу не падает и создаёт данные.
+- `SeedService` — только дымовые тесты (`SeedServiceTests`, **готово**, покрытие 98 %): сид в пустую базу создаёт
+  категории, задачи с историей и привычки с отметками; данные согласованы (у каждой задачи есть категория,
+  `sortOrder` уникален, многодневные заканчиваются позже начала); при непустой базе `seedIfNeeded` ничего не делает;
+  «Загрузить пример» поверх своих данных не дублирует категории и привычки, а задачи встают после своих.
+  `SeedService` берёт `Calendar.current` и `.now`, поэтому конкретные даты не проверяются.
 
 ## Порядок работ и оценка
 
-| Этап | Объём | Оценка |
-|---|---|---|
-| 0. Таргет, помощники, часы, `ReminderScheduling` | ~6 файлов | 0,5–1 день |
-| 1. Чистая логика + локализация | ~16 файлов, ~150 тестов | 2 дня |
-| 2. Репозитории и экспорт | 4 файла, ~50 тестов | 1–1,5 дня |
-| 3. ViewModel | ~12 файлов, ~120 тестов | 3–4 дня |
+| Этап | Объём (план) | Оценка | Факт |
+|---|---|---|---|
+| 0. Таргет, помощники, часы, `ReminderScheduling` | ~6 файлов | 0,5–1 день | готово, 8 файлов помощников |
+| 1. Чистая логика + локализация | ~16 файлов, ~150 тестов | 2 дня | готово, 227 тестов |
+| 2. Репозитории и экспорт | 4 файла, ~50 тестов | 1–1,5 дня | готово, 56 тестов |
+| 3. ViewModel | ~12 файлов, ~120 тестов | 3–4 дня | готово, 220 тестов |
+| `SeedService` (дымовые) | 1 файл | — | готово, 5 тестов |
+| **Всего** | | | **508 тестов** |
 
-После этапа 1 — запускать тесты в CI на каждый PR (GitHub Actions, `macos` runner, `xcodebuild test`).
+## Отложено: CI
+
+Пока не настроено, сделаем позже. Цель — запускать тесты на каждый PR в `main`.
+
+- GitHub Actions, workflow `.github/workflows/tests.yml`, триггеры `pull_request` и `push` в `main`.
+- Runner `macos` с Xcode 27 (`maxim-lobanov/setup-xcode` или выбор через `xcode-select`). Проект требует iOS 26.
+- Команда: `xcodebuild test -project TickFlow.xcodeproj -scheme TickFlow -destination 'platform=iOS Simulator,name=<iPhone>,OS=<версия>' -enableCodeCoverage YES`.
+  Имя и версию симулятора брать из образа runner'а (`xcrun simctl list devices available`): без `OS=` берётся последняя версия, а на ней нужного устройства может не быть.
+- Подпись не нужна: для симулятора достаточно `CODE_SIGNING_ALLOWED=NO`.
+- Язык тестов уже задан в схеме (`ru` / `RU`) — на runner'е отдельно настраивать не нужно.
+- `L10nTests` читают исходники по `#filePath`, поэтому тесты должны идти из checkout'а репозитория (не из собранного заранее бандла).
+- Результат: `.xcresult` как артефакт; отчёт о покрытии — `xcrun xccov view --report`. Порог покрытия как проверку PR можно добавить позже.

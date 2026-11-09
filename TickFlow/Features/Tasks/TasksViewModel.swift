@@ -53,6 +53,7 @@ final class TasksViewModel {
     @ObservationIgnored private let filter: TaskFilterStore
     @ObservationIgnored private let actions: TaskActions
     @ObservationIgnored private let navigator: AppNavigator
+    @ObservationIgnored private let clock: any AppClock
 
     init(
         tasks: any TaskRepository,
@@ -60,8 +61,10 @@ final class TasksViewModel {
         settings: any SettingsRepository,
         filter: TaskFilterStore,
         toasts: ToastCenter,
-        navigator: AppNavigator
+        navigator: AppNavigator,
+        clock: any AppClock = SystemClock()
     ) {
+        self.clock = clock
         self.navigator = navigator
         taskRepository = tasks
         listRepository = lists
@@ -70,7 +73,7 @@ final class TasksViewModel {
         actions = TaskActions(tasks: tasks, toasts: toasts)
     }
 
-    private var format: DisplayFormatter { DisplayFormatter(settings: settings.settings) }
+    private var format: DisplayFormatter { DisplayFormatter(settings: settings.settings, clock: clock) }
 
     // MARK: - Шапка
 

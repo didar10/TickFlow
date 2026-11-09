@@ -3,9 +3,11 @@ import SwiftUI
 
 @main
 struct TickFlowApp: App {
-    @State private var dependencies: AppDependencies
+    /// `nil` под юнит-тестами: приложение-хост не открывает базу, не трогает UserDefaults и уведомления.
+    @State private var dependencies: AppDependencies?
 
     init() {
+        guard !LaunchEnvironment.isRunningUnitTests else { return }
         do {
             let container = try ModelContainer(for: Schema(AppDependencies.modelTypes))
             _dependencies = State(initialValue: AppDependencies(container: container))
@@ -16,8 +18,18 @@ struct TickFlowApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView(dependencies: dependencies)
-                .environment(dependencies)
+            if let dependencies {
+                RootView(dependencies: dependencies)
+                    .environment(dependencies)
+            }
         }
+    }
+}
+
+enum LaunchEnvironment {
+    /// Приложение запущено как хост тестового бандла.
+    static var isRunningUnitTests: Bool {
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+            || NSClassFromString("XCTestCase") != nil
     }
 }

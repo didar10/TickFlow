@@ -82,6 +82,7 @@ final class CalendarViewModel {
     @ObservationIgnored private let actions: TaskActions
     @ObservationIgnored private let navigator: AppNavigator
     @ObservationIgnored private let loadSampleData: () -> Void
+    @ObservationIgnored private let clock: any AppClock
 
     init(
         tasks: any TaskRepository,
@@ -90,8 +91,10 @@ final class CalendarViewModel {
         filter: TaskFilterStore,
         toasts: ToastCenter,
         navigator: AppNavigator,
-        loadSampleData: @escaping () -> Void
+        loadSampleData: @escaping () -> Void,
+        clock: any AppClock = SystemClock()
     ) {
+        self.clock = clock
         taskRepository = tasks
         listRepository = lists
         self.settings = settings
@@ -101,10 +104,10 @@ final class CalendarViewModel {
         self.loadSampleData = loadSampleData
         actions = TaskActions(tasks: tasks, toasts: toasts)
         mode = settings.settings.lastCalendarMode ?? settings.settings.defaultCalendarMode
-        selectedDate = Calendar.current.startOfDay(for: .now)
+        selectedDate = DisplayFormatter(settings: settings.settings, clock: clock).today
     }
 
-    private var format: DisplayFormatter { DisplayFormatter(settings: settings.settings) }
+    private var format: DisplayFormatter { DisplayFormatter(settings: settings.settings, clock: clock) }
     private var calendar: Calendar { format.calendar }
 
     var geometry: TimelineGeometry { TimelineGeometry(mode: mode) }
@@ -165,7 +168,7 @@ final class CalendarViewModel {
     private func shift(by value: Int) {
         if mode == .month {
             guard let month = calendar.date(byAdding: .month, value: value, to: startOfMonth(selectedDate)) else { return }
-            selectedDate = calendar.isDate(month, equalTo: .now, toGranularity: .month) ? format.today : month
+            selectedDate = calendar.isDate(month, equalTo: format.now, toGranularity: .month) ? format.today : month
         } else {
             selectedDate = calendar.date(byAdding: .day, value: value * mode.dayCount, to: selectedDate) ?? selectedDate
         }
@@ -195,11 +198,11 @@ final class CalendarViewModel {
     }
 
     var dayLabel: String {
-        format.fullDay(selectedDate) + (calendar.isDateInToday(selectedDate) ? L10n.Common.todaySuffix : "")
+        format.fullDay(selectedDate) + (format.isToday(selectedDate) ? L10n.Common.todaySuffix : "")
     }
 
     func isToday(_ index: Int) -> Bool {
-        visibleDays.indices.contains(index) && calendar.isDateInToday(visibleDays[index])
+        visibleDays.indices.contains(index) && format.isToday(visibleDays[index])
     }
 
     // MARK: - Шкала
@@ -220,9 +223,9 @@ final class CalendarViewModel {
 
     /// Минута, к которой прокрутить шкалу при открытии: чуть выше текущего времени.
     var initialScrollMinute: Int {
-        let showsToday = visibleDays.contains { calendar.isDateInToday($0) }
+        let showsToday = visibleDays.contains { format.isToday($0) }
         return showsToday
-            ? max(0, format.minute(of: .now) - 140)
+            ? max(0, format.minute(of: format.now) - 140)
             : max(0, settings.settings.workdayStartHour * 60 - 30)
     }
 
@@ -388,7 +391,7 @@ final class CalendarViewModel {
     }
 
     var agendaTitle: String {
-        calendar.isDateInToday(selectedDate) ? L10n.Common.today : format.fullDay(selectedDate)
+        format.isToday(selectedDate) ? L10n.Common.today : format.fullDay(selectedDate)
     }
 
     var agenda: [CalendarItems.AgendaRow] {
@@ -417,8 +420,8 @@ final class CalendarViewModel {
 
     /// Кнопка «+»: на сегодня — ближайший час, на другой день — 9:00.
     func beginCreatingTask() {
-        let isToday = calendar.isDateInToday(selectedDate)
-        let nextHour = min(23, calendar.component(.hour, from: .now) + 1)
+        let isToday = format.isToday(selectedDate)
+        let nextHour = min(23, calendar.component(.hour, from: format.now) + 1)
         editorRequest = .new(day: selectedDate, startMinute: isToday ? nextHour * 60 : 540, list: listRepository.lists.first)
     }
 
@@ -649,7 +652,7 @@ final class CalendarViewModel {
             id: day,
             weekday: symbol[weekdayIndex(of: day)],
             number: String(calendar.component(.day, from: day)),
-            isToday: calendar.isDateInToday(day),
+            isToday: format.isToday(day),
             isSelected: calendar.isDate(day, inSameDayAs: selectedDate),
             hasTasks: hasTasks
         )

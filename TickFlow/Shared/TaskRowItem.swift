@@ -24,13 +24,13 @@ struct TaskRowItem: Identifiable, Equatable {
         title = task.title
         priorityMarks = task.priority.marks
         self.meta = meta ?? format.dueLabel(for: task)
-        isOverdue = task.isOverdue
+        isOverdue = task.isOverdue(now: format.now, calendar: format.calendar)
         categoryName = task.list?.name ?? L10n.Common.noCategory
         categoryColorHex = task.list?.colorHex ?? AppColors.fallbackList
         subtaskProgress = task.subtasks.isEmpty ? nil : "\(task.completedSubtaskCount)/\(task.subtasks.count)"
         hasReminder = task.reminder != .none && task.dueDate != nil
         isRepeating = task.repeatRule != .never
-        hasConflict = ConflictDetector.conflict(for: task, in: allTasks) != nil
+        hasConflict = ConflictDetector.conflict(for: task, in: allTasks, calendar: format.calendar) != nil
         isCompleted = task.isCompleted
         isUrgent = task.priority == .high
     }

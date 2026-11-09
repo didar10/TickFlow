@@ -3441,13 +3441,13 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@% к прошлому периоду"
+            "value": "%@%% к прошлому периоду"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@% vs previous period"
+            "value": "%@%% vs previous period"
           }
         }
       }

@@ -51,7 +51,7 @@ enum ScheduleCommit {
     /// Подсказка о соседних задачах: «Встык с «…»» или «Перерыв всего N мин».
     static func gapNote(start: Date, end: Date, excluding id: UUID, in tasks: [TaskItem], calendar: Calendar) -> String {
         var note = ""
-        for other in tasks where other.id != id && !other.isCompleted && other.hasTime && !other.isMultiDay {
+        for other in tasks where other.id != id && !other.isCompleted && other.hasTime && !other.isMultiDay(calendar: calendar) {
             guard let otherStart = other.dueDate, let otherEnd = other.endDate,
                   calendar.isDate(otherStart, inSameDayAs: start) else { continue }
             let after = Int(otherStart.timeIntervalSince(end) / 60)

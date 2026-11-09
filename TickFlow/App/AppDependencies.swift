@@ -17,15 +17,24 @@ final class AppDependencies {
     @ObservationIgnored let navigator = AppNavigator()
     /// Панель быстрого создания задачи поверх всего приложения (над таб-баром).
     @ObservationIgnored let quickEditorHost = QuickEditorHost()
+    @ObservationIgnored private let clock: any AppClock
+    @ObservationIgnored private let reminders: any ReminderScheduling
 
     static let modelTypes: [any PersistentModel.Type] = [
         TaskList.self, TaskItem.self, Subtask.self, Habit.self, HabitLog.self
     ]
 
-    init(container: ModelContainer, defaults: UserDefaults = .standard) {
+    init(
+        container: ModelContainer,
+        defaults: UserDefaults = .standard,
+        clock: any AppClock = SystemClock(),
+        reminders: any ReminderScheduling = SystemReminderScheduler()
+    ) {
         self.container = container
-        repository = SwiftDataRepository(context: container.mainContext)
-        habitRepository = SwiftDataHabitRepository(context: container.mainContext)
+        self.clock = clock
+        self.reminders = reminders
+        repository = SwiftDataRepository(context: container.mainContext, clock: clock, reminders: reminders)
+        habitRepository = SwiftDataHabitRepository(context: container.mainContext, clock: clock, reminders: reminders)
         settingsRepository = UserDefaultsSettingsRepository(defaults: defaults)
         repository.remindersEnabled = settingsRepository.settings.taskRemindersEnabled
         habitRepository.remindersEnabled = settingsRepository.settings.habitRemindersEnabled
@@ -53,7 +62,7 @@ final class AppDependencies {
     /// Запуск: перепланирует напоминания, если уведомления уже разрешены.
     /// Разрешение запрашивается в онбординге, а пример данных — по кнопке.
     func bootstrap() async {
-        guard settingsRepository.settings.hasCompletedOnboarding, await NotificationScheduler.isAuthorized() else { return }
+        guard settingsRepository.settings.hasCompletedOnboarding, await reminders.isAuthorized() else { return }
         repository.rescheduleReminders(enabled: settingsRepository.settings.taskRemindersEnabled)
         habitRepository.rescheduleReminders(enabled: settingsRepository.settings.habitRemindersEnabled)
     }
@@ -80,7 +89,8 @@ final class AppDependencies {
             settings: settingsRepository,
             filter: taskFilter,
             toasts: toasts,
-            navigator: navigator
+            navigator: navigator,
+            clock: clock
         )
     }
 
@@ -96,12 +106,13 @@ final class AppDependencies {
             filter: taskFilter,
             toasts: toasts,
             navigator: navigator,
-            loadSampleData: { [weak self] in self?.loadSampleData() }
+            loadSampleData: { [weak self] in self?.loadSampleData() },
+            clock: clock
         )
     }
 
     func makeSearchViewModel() -> SearchViewModel {
-        SearchViewModel(tasks: repository, settings: settingsRepository, toasts: toasts)
+        SearchViewModel(tasks: repository, settings: settingsRepository, toasts: toasts, clock: clock)
     }
 
     func makeTaskEditorViewModel(request: TaskEditorRequest) -> TaskEditorViewModel {
@@ -110,16 +121,17 @@ final class AppDependencies {
             settings: settingsRepository.settings,
             tasks: repository,
             lists: repository,
-            toasts: toasts
+            toasts: toasts,
+            clock: clock
         )
     }
 
     func makeHabitsViewModel() -> HabitsViewModel {
-        HabitsViewModel(habits: habitRepository, settings: settingsRepository, toasts: toasts, navigator: navigator)
+        HabitsViewModel(habits: habitRepository, settings: settingsRepository, toasts: toasts, navigator: navigator, clock: clock)
     }
 
     func makeHabitDetailViewModel(id: UUID) -> HabitDetailViewModel {
-        HabitDetailViewModel(id: id, habits: habitRepository, settings: settingsRepository, toasts: toasts)
+        HabitDetailViewModel(id: id, habits: habitRepository, settings: settingsRepository, toasts: toasts, clock: clock)
     }
 
     func makeHabitEditorViewModel(request: HabitEditorRequest) -> HabitEditorViewModel {
@@ -128,12 +140,19 @@ final class AppDependencies {
             habits: habitRepository,
             settings: settingsRepository,
             toasts: toasts,
-            navigator: navigator
+            navigator: navigator,
+            clock: clock
         )
     }
 
     func makeInsightsViewModel() -> InsightsViewModel {
-        InsightsViewModel(tasks: repository, habits: habitRepository, settings: settingsRepository, navigator: navigator)
+        InsightsViewModel(
+            tasks: repository,
+            habits: habitRepository,
+            settings: settingsRepository,
+            navigator: navigator,
+            clock: clock
+        )
     }
 
     func makeSettingsViewModel() -> SettingsViewModel {
@@ -144,7 +163,9 @@ final class AppDependencies {
             habits: habitRepository,
             toasts: toasts,
             navigator: navigator,
-            loadSampleData: { [weak self] in self?.loadSampleData() }
+            loadSampleData: { [weak self] in self?.loadSampleData() },
+            clock: clock,
+            reminders: reminders
         )
     }
 
@@ -154,7 +175,9 @@ final class AppDependencies {
             habits: habitRepository,
             tasks: repository,
             navigator: navigator,
-            loadSampleData: { [weak self] in self?.loadSampleData() }
+            loadSampleData: { [weak self] in self?.loadSampleData() },
+            clock: clock,
+            reminders: reminders
         )
     }
 

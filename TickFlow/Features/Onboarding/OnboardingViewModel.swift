@@ -74,14 +74,20 @@ final class OnboardingViewModel {
     @ObservationIgnored private let tasks: any TaskRepository
     @ObservationIgnored private let navigator: AppNavigator
     @ObservationIgnored private let loadSampleData: () -> Void
+    @ObservationIgnored private let clock: any AppClock
+    @ObservationIgnored private let reminders: any ReminderScheduling
 
     init(
         settings: any SettingsRepository,
         habits: any HabitRepository,
         tasks: any TaskRepository,
         navigator: AppNavigator,
-        loadSampleData: @escaping () -> Void
+        loadSampleData: @escaping () -> Void,
+        clock: any AppClock = SystemClock(),
+        reminders: any ReminderScheduling = SystemReminderScheduler()
     ) {
+        self.clock = clock
+        self.reminders = reminders
         self.settings = settings
         self.habits = habits
         self.tasks = tasks
@@ -92,7 +98,7 @@ final class OnboardingViewModel {
         workdayEnd = settings.settings.workdayEndHour
     }
 
-    private var format: DisplayFormatter { DisplayFormatter(settings: settings.settings) }
+    private var format: DisplayFormatter { DisplayFormatter(settings: settings.settings, clock: clock) }
 
     // MARK: - Навигация
 
@@ -127,7 +133,7 @@ final class OnboardingViewModel {
         switch step {
         case .reminders:
             isRequestingPermission = true
-            remindersAllowed = await NotificationScheduler.requestAuthorization()
+            remindersAllowed = await reminders.requestAuthorization()
             isRequestingPermission = false
             advance()
         case .done:
