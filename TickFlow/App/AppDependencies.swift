@@ -18,6 +18,8 @@ final class AppDependencies {
     @ObservationIgnored let navigator = AppNavigator()
     /// Панель быстрого создания задачи поверх всего приложения (над таб-баром).
     @ObservationIgnored let quickEditorHost = QuickEditorHost()
+    /// Сессии фокуса и таймер задач: одно состояние на всё приложение.
+    @ObservationIgnored let focus: FocusEngine
     @ObservationIgnored private let clock: any AppClock
     @ObservationIgnored private let reminders: any ReminderScheduling
 
@@ -39,6 +41,14 @@ final class AppDependencies {
         timeEntryRepository = SwiftDataTimeEntryRepository(context: container.mainContext)
         settingsRepository = UserDefaultsSettingsRepository(defaults: defaults)
         repository.remindersEnabled = settingsRepository.settings.taskRemindersEnabled
+        focus = FocusEngine(
+            entries: timeEntryRepository,
+            tasks: repository,
+            settings: settingsRepository,
+            clock: clock,
+            defaults: defaults,
+            autoTick: !LaunchEnvironment.isRunningUnitTests
+        )
         habitRepository.remindersEnabled = settingsRepository.settings.habitRemindersEnabled
     }
 

@@ -7082,6 +7082,91 @@
           }
         }
       }
+    },
+    "focus.completedTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сессия фокуса завершена"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Focus session complete"
+          }
+        }
+      }
+    },
+    "focus.completedBody": {
+      "extractionState": "manual",
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld мин сохранено. Время для перерыва на %2$lld мин."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld min saved. Time for a %2$lld-minute break."
+          }
+        }
+      }
+    },
+    "focus.completedBodyTask": {
+      "extractionState": "manual",
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld мин на «%2$@» сохранено. Время для перерыва на %3$lld мин."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld min on “%2$@” saved. Time for a %3$lld-minute break."
+          }
+        }
+      }
+    },
+    "focus.breakOverTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перерыв окончен"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Break is over"
+          }
+        }
+      }
+    },
+    "focus.breakOverBody": {
+      "extractionState": "manual",
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Готовы к сессии %1$lld из %2$lld?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ready for session %1$lld of %2$lld?"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

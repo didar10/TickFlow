@@ -592,4 +592,18 @@ enum L10n {
         static var bookChapter: String { String(localized: "sample.bookChapter", defaultValue: "Глава книги") }
         static var onlineCourse: String { String(localized: "sample.onlineCourse", defaultValue: "Онлайн-курс") }
     }
+
+    enum Focus {
+        static var completedTitle: String { String(localized: "focus.completedTitle", defaultValue: "Сессия фокуса завершена") }
+        static func completedBody(_ minutes: Int, _ breakMinutes: Int) -> String {
+            String(localized: "focus.completedBody", defaultValue: "\(minutes) мин сохранено. Время для перерыва на \(breakMinutes) мин.")
+        }
+        static func completedBodyTask(_ minutes: Int, _ task: String, _ breakMinutes: Int) -> String {
+            String(localized: "focus.completedBodyTask", defaultValue: "\(minutes) мин на «\(task)» сохранено. Время для перерыва на \(breakMinutes) мин.")
+        }
+        static var breakOverTitle: String { String(localized: "focus.breakOverTitle", defaultValue: "Перерыв окончен") }
+        static func breakOverBody(_ session: Int, _ total: Int) -> String {
+            String(localized: "focus.breakOverBody", defaultValue: "Готовы к сессии \(session) из \(total)?")
+        }
+    }
 }
