@@ -137,6 +137,9 @@ final class AppDependencies {
             toasts: toasts,
             focus: focus,
             timeEntries: timeEntryRepository,
+            stopFlow: makeStopFlow(),
+            makeEntryEditor: entryEditorFactory,
+            makeSessionDetail: { [unowned self] in makeSessionDetail(entry: $0) },
             clock: clock
         )
     }
@@ -203,5 +206,42 @@ final class AppDependencies {
 
     func makeCategoriesViewModel() -> CategoriesViewModel {
         CategoriesViewModel(lists: repository)
+    }
+
+    // MARK: - Фокус
+
+    private var displayFormatter: DisplayFormatter { DisplayFormatter(settings: settingsRepository.settings, clock: clock) }
+
+    func makeTimeEntryEditor(mode: TimeEntryEditorViewModel.Mode, task: TaskItem?, start: Date, end: Date) -> TimeEntryEditorViewModel {
+        TimeEntryEditorViewModel(
+            mode: mode, task: task, start: start, end: end,
+            entries: timeEntryRepository, tasks: repository, focus: focus, toasts: toasts, format: displayFormatter
+        )
+    }
+
+    private var entryEditorFactory: TimeEntryEditorFactory {
+        { [unowned self] mode, task, start, end in makeTimeEntryEditor(mode: mode, task: task, start: start, end: end) }
+    }
+
+    func makeStopFlow() -> FocusStopFlow {
+        FocusStopFlow(focus: focus, toasts: toasts, makeEntryEditor: entryEditorFactory)
+    }
+
+    func makeFocusScreenViewModel(host: FocusEngine.ScreenHost, onOpenHistory: (() -> Void)? = nil) -> FocusScreenViewModel {
+        FocusScreenViewModel(
+            focus: focus, host: host, entries: timeEntryRepository, tasks: repository,
+            format: displayFormatter, stopFlow: makeStopFlow(), onOpenHistory: onOpenHistory
+        )
+    }
+
+    func makeSessionDetail(entry: TimeEntry, onOpenTask: ((TaskItem) -> Void)? = nil) -> SessionDetailViewModel {
+        SessionDetailViewModel(
+            entry: entry, entries: timeEntryRepository, toasts: toasts, format: displayFormatter,
+            makeEntryEditor: entryEditorFactory, onOpenTask: onOpenTask
+        )
+    }
+
+    func makeFocusSettingsViewModel() -> FocusSettingsViewModel {
+        FocusSettingsViewModel(settings: settingsRepository, focus: focus)
     }
 }

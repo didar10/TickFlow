@@ -50,6 +50,13 @@ struct ProfileView: View {
                         .buttonStyle(.plain)
                     }
 
+                    SettingsGroup(L10n.Focus.phaseFocus) {
+                        Button { viewModel.isFocusSettingsPresented = true } label: {
+                            ValueRow(L10n.Focus.timerSettingsTitle, value: viewModel.focusTimerSummary, showsChevron: true)
+                        }
+                        .buttonStyle(.plain)
+                    }
+
                     SettingsGroup(L10n.Profile.appearance) {
                         PickerRow(L10n.Profile.theme, selection: $viewModel.theme,
                                   options: viewModel.themeOptions.map { ($0, $0.title) })
@@ -143,6 +150,9 @@ struct ProfileView: View {
             Button(L10n.Profile.load, action: viewModel.confirmLoadSample)
         } message: {
             Text(L10n.Profile.loadSampleMessage)
+        }
+        .sheet(isPresented: $viewModel.isFocusSettingsPresented) {
+            FocusSettingsView(viewModel: dependencies.makeFocusSettingsViewModel())
         }
         .task { await viewModel.refreshAuthorization() }
     }

@@ -665,5 +665,90 @@ enum L10n {
             String(localized: "focus.startTimerFor", defaultValue: "Запустить таймер: \(task)")
         }
         static var openTimer: String { String(localized: "focus.openTimer", defaultValue: "Открыть таймер") }
+        static var noTaskLink: String { String(localized: "focus.noTaskLink", defaultValue: "Без задачи · Привязать") }
+        static func minuteSession(_ minutes: Int) -> String {
+            String(localized: "focus.minuteSession", defaultValue: "Сессия на \(minutes) мин")
+        }
+        static func ofMinutes(_ minutes: Int) -> String {
+            String(localized: "focus.ofMinutes", defaultValue: "из \(minutes) мин")
+        }
+        static func timerOfEstimate(_ tracked: String, _ estimate: String) -> String {
+            String(localized: "focus.timerOfEstimate", defaultValue: "\(tracked) из \(estimate) по оценке")
+        }
+        static func timerOnTask(_ tracked: String) -> String {
+            String(localized: "focus.timerOnTask", defaultValue: "\(tracked) на этой задаче")
+        }
+        static func sessionOf(_ session: Int, _ total: Int) -> String {
+            String(localized: "focus.sessionOf", defaultValue: "Сессия \(session) из \(total)")
+        }
+        static func sessionsDone(_ done: Int, _ total: Int) -> String {
+            String(localized: "focus.sessionsDone", defaultValue: "Выполнено \(done) из \(total)")
+        }
+        static var longBreakCycle: String { String(localized: "focus.longBreakCycle", defaultValue: "Длинный перерыв · цикл пройден") }
+        static var start: String { String(localized: "focus.start", defaultValue: "Старт") }
+        static var startBreak: String { String(localized: "focus.startBreak", defaultValue: "Начать перерыв") }
+        static var stopAndSave: String { String(localized: "focus.stopAndSave", defaultValue: "Стоп и сохранить") }
+        static var endCycle: String { String(localized: "focus.endCycle", defaultValue: "Завершить цикл") }
+        static var skipBreak: String { String(localized: "focus.skipBreak", defaultValue: "Пропустить перерыв") }
+        static var presetCustom: String { String(localized: "focus.presetCustom", defaultValue: "Свой") }
+        static func sessions(_ count: Int) -> String {
+            String(localized: "focus.sessions", defaultValue: "\(count) сессии")
+        }
+        static func todaySummary(_ duration: String, _ sessions: String) -> String {
+            String(localized: "focus.todaySummary", defaultValue: "Сегодня · \(duration) фокуса · \(sessions)")
+        }
+        static var history: String { String(localized: "focus.history", defaultValue: "История") }
+        static var endSessionTitle: String { String(localized: "focus.endSessionTitle", defaultValue: "Завершить сессию?") }
+        static func endSessionMessage(_ minutes: Int, _ total: Int) -> String {
+            String(localized: "focus.endSessionMessage", defaultValue: "Вы сосредоточены \(minutes) из \(total) мин. Сохраните сессию как прерванную или удалите её.")
+        }
+        static func saveMinutes(_ minutes: Int) -> String {
+            String(localized: "focus.saveMinutes", defaultValue: "Сохранить \(minutes) мин")
+        }
+        static var discardSession: String { String(localized: "focus.discardSession", defaultValue: "Удалить сессию") }
+        static func savedInterruptedToast(_ minutes: Int) -> String {
+            String(localized: "focus.savedInterruptedToast", defaultValue: "Сохранено \(minutes) мин · Прервана")
+        }
+        static var cycleEndedToast: String { String(localized: "focus.cycleEndedToast", defaultValue: "Цикл фокуса завершён") }
+        static var linkTask: String { String(localized: "focus.linkTask", defaultValue: "Привязать задачу") }
+        static var noTask: String { String(localized: "focus.noTask", defaultValue: "Без задачи") }
+        static var focusSession: String { String(localized: "focus.focusSession", defaultValue: "Сессия фокуса") }
+        static var manualEntry: String { String(localized: "focus.manualEntry", defaultValue: "Ручная запись") }
+        static var timerSettingsTitle: String { String(localized: "focus.timerSettingsTitle", defaultValue: "Таймер фокуса") }
+        static var preset: String { String(localized: "focus.preset", defaultValue: "Пресет") }
+        static var longBreakAfter: String { String(localized: "focus.longBreakAfter", defaultValue: "Длинный перерыв после") }
+        static var autoStartBreaks: String { String(localized: "focus.autoStartBreaks", defaultValue: "Автозапуск перерывов") }
+        static var autoStartFocus: String { String(localized: "focus.autoStartFocus", defaultValue: "Автозапуск фокуса") }
+        static var sessionNotifications: String { String(localized: "focus.sessionNotifications", defaultValue: "Уведомления о сессиях") }
+        static var settingsFootnote: String { String(localized: "focus.settingsFootnote", defaultValue: "Таймер идёт в фоне. Когда сессия или перерыв закончатся, придёт уведомление.") }
+        static var addTime: String { String(localized: "focus.addTime", defaultValue: "Добавить время") }
+        static var editEntry: String { String(localized: "focus.editEntry", defaultValue: "Изменить запись") }
+        static var saveTime: String { String(localized: "focus.saveTime", defaultValue: "Сохранить время") }
+        static var task: String { String(localized: "focus.task", defaultValue: "Задача") }
+        static var duration: String { String(localized: "focus.duration", defaultValue: "Длительность") }
+        static var endBeforeStart: String { String(localized: "focus.endBeforeStart", defaultValue: "Конец раньше начала.") }
+        static var footTimer: String { String(localized: "focus.footTimer", defaultValue: "Время записано таймером. Поправьте его, если забыли остановить.") }
+        static var footManual: String { String(localized: "focus.footManual", defaultValue: "Ручные записи входят в потраченное время задачи и видны в календаре.") }
+        static var deleteEntry: String { String(localized: "focus.deleteEntry", defaultValue: "Удалить запись") }
+        static var discard: String { String(localized: "focus.discard", defaultValue: "Не сохранять") }
+        static func entrySavedToast(_ duration: String) -> String {
+            String(localized: "focus.entrySavedToast", defaultValue: "Запись сохранена · \(duration)")
+        }
+        static func entryUpdatedToast(_ duration: String) -> String {
+            String(localized: "focus.entryUpdatedToast", defaultValue: "Запись изменена · \(duration)")
+        }
+        static var entryDeletedToast: String { String(localized: "focus.entryDeletedToast", defaultValue: "Запись удалена") }
+        static var sessionTitle: String { String(localized: "focus.sessionTitle", defaultValue: "Сессия") }
+        static var actual: String { String(localized: "focus.actual", defaultValue: "Фактически") }
+        static var plan: String { String(localized: "focus.plan", defaultValue: "План") }
+        static var totalOnTask: String { String(localized: "focus.totalOnTask", defaultValue: "Всего на задаче") }
+        static func totalOf(_ tracked: String, _ estimate: String) -> String {
+            String(localized: "focus.totalOf", defaultValue: "\(tracked) из \(estimate)")
+        }
+        static var openTask: String { String(localized: "focus.openTask", defaultValue: "Открыть задачу") }
+        static var deleteSession: String { String(localized: "focus.deleteSession", defaultValue: "Удалить сессию") }
+        static var sessionDeletedToast: String { String(localized: "focus.sessionDeletedToast", defaultValue: "Сессия удалена") }
+        static var openFocus: String { String(localized: "focus.openFocus", defaultValue: "Открыть фокус") }
+        static var settings: String { String(localized: "focus.settings", defaultValue: "Настройки таймера") }
     }
 }

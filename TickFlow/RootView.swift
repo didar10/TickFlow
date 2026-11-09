@@ -3,6 +3,7 @@ import SwiftUI
 struct RootView: View {
     let dependencies: AppDependencies
     @State private var viewModel: RootViewModel
+    @Environment(\.scenePhase) private var scenePhase
 
     init(dependencies: AppDependencies) {
         self.dependencies = dependencies
@@ -32,10 +33,30 @@ struct RootView: View {
         .tint(AppColors.accent)
         .preferredColorScheme(viewModel.colorScheme)
         .overlay(alignment: .bottom) {
+            if showsMiniPlayer {
+                FocusMiniPlayer()
+                    .padding(.leading, 12)
+                    .padding(.trailing, clearsAddButton ? 86 : 12)
+                    .padding(.bottom, Self.miniPlayerBottom)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.easeOut(duration: 0.25), value: showsMiniPlayer)
+        .overlay(alignment: .top) {
+            if let banner = focus.banner, !focus.isScreenPresented {
+                FocusBannerView(banner: banner, onTap: {
+                    focus.dismissBanner()
+                    focus.present()
+                }, onDismiss: focus.dismissBanner)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.easeOut(duration: 0.25), value: focus.banner?.id)
+        .overlay(alignment: .bottom) {
             if let toast = viewModel.toast {
                 ToastView(toast: toast, undo: viewModel.undoToast)
                     .padding(.horizontal, 12)
-                    .padding(.bottom, 96)
+                    .padding(.bottom, showsMiniPlayer ? Self.miniPlayerBottom + 64 : 96)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .id(toast.id)
             }
@@ -44,10 +65,29 @@ struct RootView: View {
         .fullScreenCover(isPresented: $viewModel.isOnboardingPresented) {
             OnboardingView(viewModel: dependencies.makeOnboardingViewModel())
         }
+        .fullScreenCover(isPresented: Binding(
+            get: { focus.screenHost == .root },
+            set: { if !$0 { focus.closeScreen() } }
+        )) {
+            FocusView(viewModel: dependencies.makeFocusScreenViewModel(host: .root))
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { focus.refresh() }
+        }
         .task {
             await dependencies.bootstrap()
         }
     }
+
+    private var focus: FocusEngine { dependencies.focus }
+
+    /// Над таб-баром, как тост.
+    private static let miniPlayerBottom: CGFloat = 62
+
+    private var showsMiniPlayer: Bool { focus.isActive && !focus.isScreenPresented }
+
+    /// На «Задачах» и «Календаре» справа кнопка «+», плашка её не закрывает.
+    private var clearsAddButton: Bool { viewModel.selectedTab == .tasks || viewModel.selectedTab == .calendar }
 }
 
 #Preview {

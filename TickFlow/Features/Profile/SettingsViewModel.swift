@@ -138,6 +138,10 @@ final class SettingsViewModel {
     /// Сколько категорий — значение строки «Категории».
     var categoryCount: String { String(lists.lists.count) }
 
+    /// «25/5», «50/10» или «40/7 мин».
+    var focusTimerSummary: String { FocusSettingsViewModel.summary(current.focus) }
+    var isFocusSettingsPresented = false
+
     // MARK: - Привычки
 
     var allowsRestDays: Bool {

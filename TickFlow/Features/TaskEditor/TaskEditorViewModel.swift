@@ -94,6 +94,14 @@ final class TaskEditorViewModel {
     @ObservationIgnored private var pendingScope: RecurringScope?
     @ObservationIgnored let focus: FocusEngine?
     @ObservationIgnored private let timeEntries: (any TimeEntryRepository)?
+    /// Кнопка «Стоп» на карточке сессии в редакторе.
+    @ObservationIgnored let stopFlow: FocusStopFlow?
+    @ObservationIgnored private let makeEntryEditor: TimeEntryEditorFactory?
+    @ObservationIgnored private let makeSessionDetail: ((TimeEntry) -> SessionDetailViewModel)?
+    /// Лист «Добавить время».
+    var entryEditor: TimeEntryEditorViewModel?
+    /// Лист «Сессия» для записи из списка.
+    var sessionDetail: SessionDetailViewModel?
 
     private var calendar: Calendar { format.calendar }
 
@@ -105,10 +113,16 @@ final class TaskEditorViewModel {
         toasts: ToastCenter,
         focus: FocusEngine? = nil,
         timeEntries: (any TimeEntryRepository)? = nil,
+        stopFlow: FocusStopFlow? = nil,
+        makeEntryEditor: TimeEntryEditorFactory? = nil,
+        makeSessionDetail: ((TimeEntry) -> SessionDetailViewModel)? = nil,
         clock: any AppClock = SystemClock()
     ) {
         self.focus = focus
         self.timeEntries = timeEntries
+        self.stopFlow = stopFlow
+        self.makeEntryEditor = makeEntryEditor
+        self.makeSessionDetail = makeSessionDetail
         let format = DisplayFormatter(settings: settings, clock: clock)
         self.clock = clock
         self.format = format
@@ -312,6 +326,22 @@ final class TaskEditorViewModel {
     func toggleLivePause() { focus?.togglePause() }
 
     func openLive() { focus?.present(on: .editor) }
+
+    func stopLive() { stopFlow?.stop() }
+
+    /// «Добавить вручную»: последние полчаса до текущих пяти минут.
+    func addManualEntry() {
+        guard let task, let makeEntryEditor else { return }
+        let now = clock.now
+        let minute = format.minute(of: now) / 5 * 5
+        let end = calendar.startOfDay(for: now).addingTimeInterval(TimeInterval(max(30, minute) * 60))
+        entryEditor = makeEntryEditor(.new, task, end.addingTimeInterval(-30 * 60), end)
+    }
+
+    func openEntry(_ id: UUID) {
+        guard let entry = taskEntries.first(where: { $0.id == id }), let makeSessionDetail else { return }
+        sessionDetail = makeSessionDetail(entry)
+    }
 
     private var taskEntries: [TimeEntry] {
         guard let task, let timeEntries else { return [] }

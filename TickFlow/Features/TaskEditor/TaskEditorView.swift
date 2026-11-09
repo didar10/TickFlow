@@ -215,7 +215,12 @@ struct TaskEditorView: View {
                         .focused($focus, equals: .notes)
 
                     if viewModel.showsTimeBlock {
-                        TaskTimeSection(viewModel: viewModel)
+                        TaskTimeSection(
+                            viewModel: viewModel,
+                            onStop: viewModel.stopLive,
+                            onAddManual: viewModel.addManualEntry,
+                            onOpenEntry: viewModel.openEntry
+                        )
                     }
 
                     subtasksSection
@@ -513,7 +518,10 @@ private struct TaskEditorPresenter: ViewModifier {
                 }
             }
             .fullScreenCover(isPresented: $isFullPresented, onDismiss: finish) {
-                if let editor { TaskEditorView(viewModel: editor, container: .full) }
+                if let editor {
+                    TaskEditorView(viewModel: editor, container: .full)
+                        .modifier(EditorFocusPresenter(viewModel: editor))
+                }
             }
     }
 
@@ -529,6 +537,34 @@ private struct TaskEditorPresenter: ViewModifier {
     private func finish() {
         editor = nil
         request = nil
+    }
+}
+
+/// Листы учёта времени и экран фокуса поверх полноэкранного редактора.
+private struct EditorFocusPresenter: ViewModifier {
+    @Environment(AppDependencies.self) private var dependencies
+    @Environment(FocusEngine.self) private var focus
+    @Bindable var viewModel: TaskEditorViewModel
+
+    func body(content: Content) -> some View {
+        content
+            .sheet(item: $viewModel.entryEditor) { TimeEntryEditorView(viewModel: $0) }
+            .sheet(item: $viewModel.sessionDetail) { SessionDetailView(viewModel: $0) }
+            .fullScreenCover(isPresented: Binding(
+                get: { focus.screenHost == .editor },
+                set: { if !$0 { focus.closeScreen() } }
+            )) {
+                FocusView(viewModel: dependencies.makeFocusScreenViewModel(host: .editor))
+            }
+            .modifier(OptionalStopFlow(flow: viewModel.stopFlow))
+    }
+}
+
+private struct OptionalStopFlow: ViewModifier {
+    let flow: FocusStopFlow?
+
+    func body(content: Content) -> some View {
+        if let flow { content.focusStopFlow(flow) } else { content }
     }
 }
 

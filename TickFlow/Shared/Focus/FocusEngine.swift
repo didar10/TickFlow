@@ -89,6 +89,15 @@ final class FocusEngine {
     /// Сессия начата: мини-плеер и живые отметки видны.
     var isActive: Bool { run?.isActive == true }
 
+    /// Доля кольца: фаза фокуса или потраченное на задачу от оценки для таймера.
+    var progress: Double {
+        guard let run else { return 0 }
+        guard run.mode == .timer else { return run.progress(at: now) }
+        let estimate = task?.effectiveEstimate.map { TimeInterval($0 * 60) }
+        let tracked = TimeInterval((task?.trackedMinutes ?? 0) * 60)
+        return run.progress(at: now, estimateSeconds: estimate, alreadyTracked: tracked)
+    }
+
     func isLive(_ task: TaskItem) -> Bool { isLive(taskID: task.id) }
 
     func isLive(taskID: UUID) -> Bool {
@@ -274,6 +283,12 @@ final class FocusEngine {
     }
 
     // MARK: - Настройки
+
+    /// Меняет настройки фокуса и применяет их к ещё не начатой фазе.
+    func updateSettings(_ change: (inout FocusSettings) -> Void) {
+        settings.update { change(&$0.focus) }
+        settingsChanged()
+    }
 
     /// После смены длительностей: фаза, которая ещё не начиналась, берёт новую длину.
     func settingsChanged() {
