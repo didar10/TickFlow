@@ -69,7 +69,7 @@ struct RootView: View {
             get: { focus.screenHost == .root },
             set: { if !$0 { focus.closeScreen() } }
         )) {
-            FocusView(viewModel: dependencies.makeFocusScreenViewModel(host: .root))
+            FocusView(viewModel: dependencies.makeFocusScreenViewModel(host: .root, onOpenHistory: dependencies.navigator.openFocusHistory))
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { focus.refresh() }

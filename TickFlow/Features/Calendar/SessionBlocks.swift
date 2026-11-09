@@ -139,11 +139,19 @@ struct TrackedTimeSection: View {
     let viewModel: CalendarViewModel
 
     var body: some View {
-        let rows = viewModel.trackedRows
+        let stored = viewModel.trackedRows
         let live = viewModel.showsLiveTracked ? focus.liveInterval : nil
-        if !rows.isEmpty || live != nil {
+        if !stored.isEmpty || live != nil {
             let liveMinutes = live.map { Int($0.end.timeIntervalSince($0.start) / 60) } ?? 0
-            let count = rows.count + (live == nil ? 0 : 1)
+            let rows = stored + (live.map { live in
+                [SessionRowItem(
+                    id: Self.liveID,
+                    title: focus.task?.title ?? L10n.Focus.focusSession,
+                    time: viewModel.timeText(live.start) + " – " + viewModel.timeText(live.end) + " · " + FocusText.kind(live.kind),
+                    duration: DateFormatting.duration(minutes: liveMinutes), kind: live.kind,
+                    colorHex: focus.task?.list?.colorHex, hasTask: focus.task != nil, badge: .live
+                )]
+            } ?? [])
             VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(L10n.Calendar.trackedTime)
@@ -152,96 +160,21 @@ struct TrackedTimeSection: View {
                     Spacer()
                     Text(L10n.Calendar.trackedTotal(
                         DateFormatting.duration(minutes: viewModel.trackedMinutes + liveMinutes),
-                        L10n.Focus.sessions(count)
+                        L10n.Focus.sessions(rows.count)
                     ))
                     .font(AppFont.footnote)
                     .foregroundStyle(AppColors.textTertiary)
                 }
                 .padding(.horizontal, 4)
 
-                VStack(spacing: 0) {
-                    ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
-                        Button { viewModel.openSession(row.id) } label: {
-                            TrackedRowView(
-                                title: row.title, time: row.time, duration: row.duration, kind: row.kind,
-                                colorHex: row.colorHex, hasTask: row.hasTask,
-                                status: row.isInterrupted ? (L10n.Focus.statusInterrupted, .warning) : nil
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        if index < rows.count - 1 || live != nil {
-                            Divider().overlay(AppColors.separator).padding(.leading, 58)
-                        }
-                    }
-                    if let live {
-                        Button(action: viewModel.openLiveSession) {
-                            TrackedRowView(
-                                title: focus.task?.title ?? L10n.Focus.focusSession,
-                                time: viewModel.timeText(live.start) + " – " + viewModel.timeText(live.end) + " · " + FocusText.kind(live.kind),
-                                duration: DateFormatting.duration(minutes: liveMinutes), kind: live.kind,
-                                colorHex: focus.task?.list?.colorHex, hasTask: focus.task != nil,
-                                status: (L10n.Calendar.inProgress, .accent)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
+                SessionRowsCard(rows: rows) { id in
+                    if id == Self.liveID { viewModel.openLiveSession() } else { viewModel.openSession(id) }
                 }
-                .background(AppColors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
             .padding(.horizontal, 16)
             .padding(.top, 20)
         }
     }
-}
 
-private struct TrackedRowView: View {
-    enum StatusStyle { case warning, accent }
-
-    let title: String
-    let time: String
-    let duration: String
-    let kind: TimeEntryKind
-    let colorHex: String?
-    let hasTask: Bool
-    let status: (String, StatusStyle)?
-
-    var body: some View {
-        let style = colorHex.map { CategoryStyle(hex: $0) }
-        HStack(spacing: 12) {
-            Image(systemName: kind.symbolName)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(style?.tint ?? AppColors.accent)
-                .frame(width: 32, height: 32)
-                .background(style?.background ?? AppColors.accentSoft, in: Circle())
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(AppFont.body)
-                    .foregroundStyle(hasTask ? AppColors.label : AppColors.textSecondary)
-                    .lineLimit(1)
-                Text(time)
-                    .font(AppFont.footnote)
-                    .foregroundStyle(AppColors.textSecondary)
-                    .lineLimit(1)
-            }
-            Spacer(minLength: 8)
-            VStack(alignment: .trailing, spacing: 3) {
-                Text(duration)
-                    .font(.system(size: 15, weight: .medium))
-                    .monospacedDigit()
-                    .foregroundStyle(AppColors.label)
-                if let status {
-                    Text(status.0)
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(status.1 == .warning ? AppColors.warningText : AppColors.accent)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 2)
-                        .background(status.1 == .warning ? AppColors.warningSoft : AppColors.accentSoft,
-                                    in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-                }
-            }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .contentShape(Rectangle())
-    }
+    private static let liveID = UUID()
 }

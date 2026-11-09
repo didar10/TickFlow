@@ -59,18 +59,21 @@ final class InsightsViewModel {
 
     @ObservationIgnored private let tasks: any TaskRepository
     @ObservationIgnored private let habits: any HabitRepository
-    @ObservationIgnored private let settings: any SettingsRepository
+    @ObservationIgnored let settings: any SettingsRepository
     @ObservationIgnored private let navigator: AppNavigator
-    @ObservationIgnored private let clock: any AppClock
+    @ObservationIgnored let clock: any AppClock
+    @ObservationIgnored let timeEntries: (any TimeEntryRepository)?
 
     init(
         tasks: any TaskRepository,
         habits: any HabitRepository,
         settings: any SettingsRepository,
         navigator: AppNavigator,
+        timeEntries: (any TimeEntryRepository)? = nil,
         clock: any AppClock = SystemClock()
     ) {
         self.clock = clock
+        self.timeEntries = timeEntries
         self.tasks = tasks
         self.habits = habits
         self.settings = settings
@@ -82,7 +85,7 @@ final class InsightsViewModel {
     }
 
 
-    var hasData: Bool { !tasks.tasks.isEmpty || !habits.habits.isEmpty }
+    var hasData: Bool { !tasks.tasks.isEmpty || !habits.habits.isEmpty || hasTimeData }
     var hasHabits: Bool { !habits.habits.isEmpty }
 
     var report: Report {
@@ -178,7 +181,7 @@ final class InsightsViewModel {
     }
 
     /// Интервал периода, заканчивающийся сегодня (`offset` 0) или перед ним (−1).
-    private func period(for range: Range, offset: Int, today: Date, calendar: Calendar) -> DateInterval {
+    func period(for range: Range, offset: Int, today: Date, calendar: Calendar) -> DateInterval {
         let tomorrow = calendar.date(byAdding: .day, value: 1, to: today) ?? today
         switch range {
         case .week, .month:
@@ -195,6 +198,22 @@ final class InsightsViewModel {
     }
 
     private func buckets(interval: DateInterval, calendar: Calendar, format: DisplayFormatter, tasks: [TaskItem]) -> [Bar] {
+        let ranges = bucketRanges(interval: interval, calendar: calendar, format: format)
+        let counts = ranges.map { item in
+            (created: tasks.filter { item.interval.start <= $0.createdAt && $0.createdAt < item.interval.end }.count,
+             completed: completions(in: item.interval, tasks: tasks).count)
+        }
+        let best = counts.map(\.completed).max() ?? 0
+        let bestIndex = best > 0 ? counts.firstIndex { $0.completed == best } : nil
+        return ranges.indices.map { index in
+            Bar(id: index, label: ranges[index].label, title: ranges[index].title, created: counts[index].created,
+                completed: counts[index].completed, isBest: index == bestIndex)
+        }
+    }
+
+    /// Столбцы графика: дни недели, недели месяца или месяцы года.
+    func bucketRanges(interval: DateInterval, calendar: Calendar, format: DisplayFormatter)
+        -> [(label: String, title: String, interval: DateInterval)] {
         var ranges: [(label: String, title: String, interval: DateInterval)] = []
         switch range {
         case .week:
@@ -228,16 +247,7 @@ final class InsightsViewModel {
             }
         }
 
-        let counts = ranges.map { item in
-            (created: tasks.filter { item.interval.start <= $0.createdAt && $0.createdAt < item.interval.end }.count,
-             completed: completions(in: item.interval, tasks: tasks).count)
-        }
-        let best = counts.map(\.completed).max() ?? 0
-        let bestIndex = best > 0 ? counts.firstIndex { $0.completed == best } : nil
-        return ranges.indices.map { index in
-            Bar(id: index, label: ranges[index].label, title: ranges[index].title, created: counts[index].created,
-                completed: counts[index].completed, isBest: index == bestIndex)
-        }
+        return ranges
     }
 
     // MARK: - Выводы

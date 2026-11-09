@@ -172,6 +172,7 @@ final class AppDependencies {
             habits: habitRepository,
             settings: settingsRepository,
             navigator: navigator,
+            timeEntries: timeEntryRepository,
             clock: clock
         )
     }
@@ -241,6 +242,15 @@ final class AppDependencies {
         SessionDetailViewModel(
             entry: entry, entries: timeEntryRepository, toasts: toasts, format: displayFormatter,
             makeEntryEditor: entryEditorFactory, onOpenTask: onOpenTask
+        )
+    }
+
+    func makeFocusHistoryViewModel() -> FocusHistoryViewModel {
+        FocusHistoryViewModel(
+            entries: timeEntryRepository,
+            settings: settingsRepository,
+            makeSessionDetail: { [unowned self] in makeSessionDetail(entry: $0, onOpenTask: $1) },
+            clock: clock
         )
     }
 

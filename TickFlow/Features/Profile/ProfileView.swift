@@ -5,6 +5,7 @@ struct ProfileView: View {
     @Environment(AppDependencies.self) private var dependencies
     @Environment(\.openURL) private var openURL
     @State private var viewModel: SettingsViewModel
+    @State private var path = NavigationPath()
 
     init(viewModel: SettingsViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -13,7 +14,7 @@ struct ProfileView: View {
     var body: some View {
         @Bindable var viewModel = viewModel
 
-        NavigationStack {
+        NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     Text(L10n.Tab.profile)
@@ -51,6 +52,11 @@ struct ProfileView: View {
                     }
 
                     SettingsGroup(L10n.Focus.phaseFocus) {
+                        NavigationLink(value: FocusRoute.history) {
+                            ValueRow(L10n.Focus.historyTitle, value: "", showsChevron: true)
+                        }
+                        .buttonStyle(.plain)
+                        SettingsDivider()
                         Button { viewModel.isFocusSettingsPresented = true } label: {
                             ValueRow(L10n.Focus.timerSettingsTitle, value: viewModel.focusTimerSummary, showsChevron: true)
                         }
@@ -144,6 +150,9 @@ struct ProfileView: View {
                     CategoriesView(viewModel: dependencies.makeCategoriesViewModel())
                 }
             }
+            .navigationDestination(for: FocusRoute.self) { _ in
+                FocusHistoryView(viewModel: dependencies.makeFocusHistoryViewModel())
+            }
         }
         .confirmationDialog(L10n.Profile.loadSampleQuestion, isPresented: $viewModel.isLoadSampleConfirmationPresented,
                             titleVisibility: .visible) {
@@ -153,6 +162,12 @@ struct ProfileView: View {
         }
         .sheet(isPresented: $viewModel.isFocusSettingsPresented) {
             FocusSettingsView(viewModel: dependencies.makeFocusSettingsViewModel())
+        }
+        .onChange(of: viewModel.wantsFocusHistory, initial: true) { _, wants in
+            guard wants else { return }
+            viewModel.focusHistoryOpened()
+            path = NavigationPath()
+            path.append(FocusRoute.history)
         }
         .task { await viewModel.refreshAuthorization() }
     }

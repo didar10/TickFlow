@@ -29,6 +29,10 @@ struct InsightsView: View {
                         .padding(.bottom, 12)
 
                     VStack(spacing: 8) {
+                        if viewModel.hasTimeData {
+                            TimeTrackedSection(report: viewModel.timeReport)
+                                .padding(.bottom, 12)
+                        }
                         KpiGrid(kpis: report.kpis)
                         ActivityChart(report: report)
                         if viewModel.hasHabits {

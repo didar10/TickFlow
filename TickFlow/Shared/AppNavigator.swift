@@ -44,6 +44,14 @@ final class AppNavigator {
         wantsNewTask = true
     }
 
+    /// Профиль откроет историю фокуса и сбросит флаг.
+    var wantsFocusHistory = false
+
+    func openFocusHistory() {
+        selectedTab = .profile
+        wantsFocusHistory = true
+    }
+
     /// Настройки живут во вкладке «Профиль».
     func openSettings() {
         selectedTab = .profile

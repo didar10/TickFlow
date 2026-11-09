@@ -758,5 +758,47 @@ enum L10n {
         static var sessionDeletedToast: String { String(localized: "focus.sessionDeletedToast", defaultValue: "Сессия удалена") }
         static var openFocus: String { String(localized: "focus.openFocus", defaultValue: "Открыть фокус") }
         static var settings: String { String(localized: "focus.settings", defaultValue: "Настройки таймера") }
+        static var historyTitle: String { String(localized: "focus.historyTitle", defaultValue: "История фокуса") }
+        static var last7Days: String { String(localized: "focus.last7Days", defaultValue: "За 7 дней") }
+        static var sessionsStat: String { String(localized: "focus.sessionsStat", defaultValue: "Сессии") }
+        static var filterCompleted: String { String(localized: "focus.filterCompleted", defaultValue: "Завершённые") }
+        static var filterInterrupted: String { String(localized: "focus.filterInterrupted", defaultValue: "Прерванные") }
+        static var filterCancelled: String { String(localized: "focus.filterCancelled", defaultValue: "Отменённые") }
+        static var showEarlier: String { String(localized: "focus.showEarlier", defaultValue: "Показать более ранние сессии") }
+        static var noMatches: String { String(localized: "focus.noMatches", defaultValue: "Нет сессий с этим фильтром.") }
+        static var timePeriodWeek: String { String(localized: "focus.timePeriodWeek", defaultValue: "За 7 дней") }
+        static var timePeriodMonth: String { String(localized: "focus.timePeriodMonth", defaultValue: "За 30 дней") }
+        static var timePeriodYear: String { String(localized: "focus.timePeriodYear", defaultValue: "За 12 месяцев") }
+        static func dailyAverage(_ duration: String) -> String {
+            String(localized: "focus.dailyAverage", defaultValue: "В среднем \(duration) в день")
+        }
+        static var focusSessions: String { String(localized: "focus.focusSessions", defaultValue: "Сессии фокуса") }
+        static func completedShare(_ percent: String) -> String {
+            String(localized: "focus.completedShare", defaultValue: "\(percent) завершено")
+        }
+        static var averageSession: String { String(localized: "focus.averageSession", defaultValue: "Средняя сессия") }
+        static func longest(_ duration: String) -> String {
+            String(localized: "focus.longest", defaultValue: "Самая длинная — \(duration)")
+        }
+        static func trendAverage(_ duration: String) -> String {
+            String(localized: "focus.trendAverage", defaultValue: "в среднем \(duration)")
+        }
+        static var focusVsBreak: String { String(localized: "focus.focusVsBreak", defaultValue: "Фокус и перерывы") }
+        static func focusShare(_ percent: String) -> String {
+            String(localized: "focus.focusShare", defaultValue: "\(percent) — фокус")
+        }
+        static func focusLegend(_ duration: String) -> String {
+            String(localized: "focus.focusLegend", defaultValue: "Фокус \(duration)")
+        }
+        static func breaksLegend(_ duration: String) -> String {
+            String(localized: "focus.breaksLegend", defaultValue: "Перерывы \(duration)")
+        }
+        static var byCategory: String { String(localized: "focus.byCategory", defaultValue: "По категориям") }
+        static var estimateVsActual: String { String(localized: "focus.estimateVsActual", defaultValue: "Оценка и факт") }
+        static var estimateLegend: String { String(localized: "focus.estimateLegend", defaultValue: "Оценка") }
+        static var actualLegend: String { String(localized: "focus.actualLegend", defaultValue: "Факт") }
+        static func withoutEstimate(_ duration: String) -> String {
+            String(localized: "focus.withoutEstimate", defaultValue: "\(duration) · без оценки")
+        }
     }
 }

@@ -457,19 +457,9 @@ final class CalendarViewModel {
         return indexes
     }
 
-    var trackedRows: [CalendarItems.TrackedRow] {
-        workEntries(on: selectedDate).map { entry in
-            CalendarItems.TrackedRow(
-                id: entry.id,
-                title: SessionDetailViewModel.title(for: entry),
-                time: format.time(entry.start) + " – " + format.time(entry.end) + " · " + FocusText.kind(entry.kind),
-                duration: DateFormatting.duration(minutes: entry.durationMinutes),
-                kind: entry.kind,
-                colorHex: entry.task?.list?.colorHex,
-                hasTask: entry.task != nil,
-                isInterrupted: entry.status == .interrupted
-            )
-        }
+    var trackedRows: [SessionRowItem] {
+        let format = format
+        return workEntries(on: selectedDate).map { SessionRowItem(entry: $0, format: format) }
     }
 
     var trackedMinutes: Int { workEntries(on: selectedDate).reduce(0) { $0 + $1.durationMinutes } }

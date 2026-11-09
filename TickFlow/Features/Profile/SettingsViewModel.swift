@@ -142,6 +142,11 @@ final class SettingsViewModel {
     var focusTimerSummary: String { FocusSettingsViewModel.summary(current.focus) }
     var isFocusSettingsPresented = false
 
+    var wantsFocusHistory: Bool { navigator.wantsFocusHistory }
+
+    /// Запрос с экрана фокуса обработан: история открыта.
+    func focusHistoryOpened() { navigator.wantsFocusHistory = false }
+
     // MARK: - Привычки
 
     var allowsRestDays: Bool {

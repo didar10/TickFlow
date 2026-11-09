@@ -88,19 +88,6 @@ enum CalendarItems {
         let isInterrupted: Bool
     }
 
-    /// Строка «Учтённое время» под сеткой месяца.
-    struct TrackedRow: Identifiable, Equatable {
-        let id: UUID
-        let title: String
-        /// «08:00 – 08:25 · Фокус».
-        let time: String
-        let duration: String
-        let kind: TimeEntryKind
-        let colorHex: String?
-        let hasTask: Bool
-        let isInterrupted: Bool
-    }
-
     struct AgendaRow: Identifiable {
         let id: UUID
         let title: String

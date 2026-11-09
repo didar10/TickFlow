@@ -96,7 +96,7 @@ struct CalendarTrackingTests {
         let calendar = calendar(.month)
         let rows = calendar.trackedRows
         #expect(rows.map(\.time) == ["07:00 – 07:25 · Фокус", "08:00 – 08:30 · Таймер"])
-        #expect(rows.first?.isInterrupted == true)
+        #expect(rows.first?.badge == .interrupted)
         #expect(rows.last?.hasTask == false)
         #expect(calendar.trackedMinutes == 55)
     }
