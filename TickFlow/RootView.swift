@@ -54,4 +54,5 @@ struct RootView: View {
     let dependencies = AppDependencies.preview()
     RootView(dependencies: dependencies)
         .environment(dependencies)
+        .environment(dependencies.focus)
 }

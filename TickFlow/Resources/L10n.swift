@@ -621,5 +621,49 @@ enum L10n {
         static func breakOverBody(_ session: Int, _ total: Int) -> String {
             String(localized: "focus.breakOverBody", defaultValue: "Готовы к сессии \(session) из \(total)?")
         }
+        static var button: String { String(localized: "focus.button", defaultValue: "Фокус") }
+        static var timeTracking: String { String(localized: "focus.timeTracking", defaultValue: "Учёт времени") }
+        static var trackingOnToast: String { String(localized: "focus.trackingOnToast", defaultValue: "Учёт времени включён для этой задачи") }
+        static var trackingOffToast: String { String(localized: "focus.trackingOffToast", defaultValue: "Учёт времени выключен для этой задачи") }
+        static var trackedHeader: String { String(localized: "focus.trackedHeader", defaultValue: "Потрачено") }
+        static func trackedSummary(_ duration: String) -> String {
+            String(localized: "focus.trackedSummary", defaultValue: "\(duration) потрачено")
+        }
+        static func timeLeft(_ duration: String) -> String {
+            String(localized: "focus.timeLeft", defaultValue: "Осталось \(duration)")
+        }
+        static func overEstimate(_ duration: String) -> String {
+            String(localized: "focus.overEstimate", defaultValue: "\(duration) сверх оценки")
+        }
+        static var noEstimate: String { String(localized: "focus.noEstimate", defaultValue: "Без оценки") }
+        static var estimate: String { String(localized: "focus.estimate", defaultValue: "Оценка") }
+        static var startFocus: String { String(localized: "focus.startFocus", defaultValue: "Начать фокус") }
+        static var startTimer: String { String(localized: "focus.startTimer", defaultValue: "Таймер") }
+        static var addManually: String { String(localized: "focus.addManually", defaultValue: "Добавить вручную") }
+        static func showAll(_ count: Int) -> String {
+            String(localized: "focus.showAll", defaultValue: "Показать все (\(count))")
+        }
+        static var showLess: String { String(localized: "focus.showLess", defaultValue: "Свернуть") }
+        static var phaseFocus: String { String(localized: "focus.phaseFocus", defaultValue: "Фокус") }
+        static var phaseTimer: String { String(localized: "focus.phaseTimer", defaultValue: "Таймер") }
+        static var phaseShortBreak: String { String(localized: "focus.phaseShortBreak", defaultValue: "Короткий перерыв") }
+        static var phaseLongBreak: String { String(localized: "focus.phaseLongBreak", defaultValue: "Длинный перерыв") }
+        static var pausedSuffix: String { String(localized: "focus.pausedSuffix", defaultValue: " · Пауза") }
+        static var readySuffix: String { String(localized: "focus.readySuffix", defaultValue: " · Готов") }
+        static var kindFocus: String { String(localized: "focus.kindFocus", defaultValue: "Фокус") }
+        static var kindTimer: String { String(localized: "focus.kindTimer", defaultValue: "Таймер") }
+        static var kindManual: String { String(localized: "focus.kindManual", defaultValue: "Вручную") }
+        static var kindBreak: String { String(localized: "focus.kindBreak", defaultValue: "Перерыв") }
+        static var statusCompleted: String { String(localized: "focus.statusCompleted", defaultValue: "Завершена") }
+        static var statusInterrupted: String { String(localized: "focus.statusInterrupted", defaultValue: "Прервана") }
+        static var statusCancelled: String { String(localized: "focus.statusCancelled", defaultValue: "Отброшена") }
+        static var statusRunning: String { String(localized: "focus.statusRunning", defaultValue: "Идёт") }
+        static var pause: String { String(localized: "focus.pause", defaultValue: "Пауза") }
+        static var resume: String { String(localized: "focus.resume", defaultValue: "Продолжить") }
+        static var stop: String { String(localized: "focus.stop", defaultValue: "Стоп") }
+        static func startTimerFor(_ task: String) -> String {
+            String(localized: "focus.startTimerFor", defaultValue: "Запустить таймер: \(task)")
+        }
+        static var openTimer: String { String(localized: "focus.openTimer", defaultValue: "Открыть таймер") }
     }
 }

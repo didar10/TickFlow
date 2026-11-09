@@ -12,8 +12,21 @@ struct TasksView: View {
 
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                LargeHeader(title: L10n.Tab.tasks) { EmptyView() }
-                    .padding(.bottom, 8)
+                LargeHeader(title: L10n.Tab.tasks) {
+                    if viewModel.canTrackTime {
+                        Button(action: viewModel.openFocus) {
+                            Label(L10n.Focus.button, systemImage: "target")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(AppColors.accent)
+                                .padding(.leading, 10)
+                                .padding(.trailing, 13)
+                                .frame(height: 34)
+                                .background(AppColors.accentSoft, in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.bottom, 8)
 
                 searchField
                     .padding(.horizontal, 16)
@@ -174,7 +187,11 @@ struct TasksView: View {
             if !group.rows.isEmpty {
                 VStack(spacing: 0) {
                     ForEach(Array(group.rows.enumerated()), id: \.element.id) { index, row in
-                        TaskRowView(item: row, isCompact: viewModel.isCompact) {
+                        TaskRowView(
+                            item: row,
+                            isCompact: viewModel.isCompact,
+                            onTimer: viewModel.canTrackTime ? { viewModel.timerTapped(row.id) } : nil
+                        ) {
                             viewModel.toggle(row.id)
                         }
                         .onTapGesture { viewModel.open(row.id) }
@@ -196,4 +213,5 @@ struct TasksView: View {
     let dependencies = AppDependencies.preview()
     TasksView(viewModel: dependencies.makeTasksViewModel())
         .environment(dependencies)
+        .environment(dependencies.focus)
 }

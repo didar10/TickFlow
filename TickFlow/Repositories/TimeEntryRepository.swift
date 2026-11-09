@@ -21,6 +21,8 @@ protocol TimeEntryRepository: AnyObject {
     /// Сохраняет новую запись. Запись, у которой конец не позже начала, не сохраняется.
     @discardableResult
     func add(_ draft: TimeEntryDraft) -> TimeEntry?
+    /// Сохраняет сразу много записей одним сохранением (пример данных). Неверные пропускаются.
+    func insert(_ drafts: [TimeEntryDraft])
     /// Меняет задачу, время и статус. Тип записи не меняется.
     func update(_ entry: TimeEntry, with draft: TimeEntryDraft)
     func delete(_ entry: TimeEntry)

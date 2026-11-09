@@ -237,6 +237,10 @@ final class FakeTimeEntryRepository: TimeEntryRepository {
         return entry
     }
 
+    func insert(_ drafts: [TimeEntryDraft]) {
+        drafts.forEach { add($0) }
+    }
+
     func update(_ entry: TimeEntry, with draft: TimeEntryDraft) {
         guard draft.isValid else { return }
         entry.task = draft.task

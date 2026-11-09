@@ -73,6 +73,9 @@ final class TaskEditorViewModel {
     var isNewCategoryPresented = false
     private(set) var isCategoryExplicit: Bool
     private(set) var isCompleted: Bool
+    /// Учёт времени только этой задачи. `nil` — как у категории.
+    private(set) var trackingOverride: Bool?
+    private(set) var showsAllEntries = false
     var picker: DateTimePickerViewModel?
     var dialog: Dialog?
     /// Поле, на которое View должна перевести фокус.
@@ -89,6 +92,8 @@ final class TaskEditorViewModel {
     @ObservationIgnored private let clock: any AppClock
     @ObservationIgnored private let original: TaskDraft?
     @ObservationIgnored private var pendingScope: RecurringScope?
+    @ObservationIgnored let focus: FocusEngine?
+    @ObservationIgnored private let timeEntries: (any TimeEntryRepository)?
 
     private var calendar: Calendar { format.calendar }
 
@@ -98,8 +103,12 @@ final class TaskEditorViewModel {
         tasks: any TaskRepository,
         lists: any TaskListRepository,
         toasts: ToastCenter,
+        focus: FocusEngine? = nil,
+        timeEntries: (any TimeEntryRepository)? = nil,
         clock: any AppClock = SystemClock()
     ) {
+        self.focus = focus
+        self.timeEntries = timeEntries
         let format = DisplayFormatter(settings: settings, clock: clock)
         self.clock = clock
         self.format = format
@@ -116,6 +125,7 @@ final class TaskEditorViewModel {
             categoryID = task.list?.id
             isCategoryExplicit = true
             isCompleted = task.isCompleted
+            trackingOverride = task.trackingOverride
             subtasks = task.sortedSubtasks.map { SubtaskDraft(id: $0.id, title: $0.title, isCompleted: $0.isCompleted) }
             schedule = Self.selection(for: task, format: format, defaultDuration: settings.defaultTaskDuration)
             original = TaskSnapshot(task).draft
@@ -238,6 +248,79 @@ final class TaskEditorViewModel {
     func selectCategory(_ id: UUID) {
         categoryID = id
         isCategoryExplicit = true
+    }
+
+    // MARK: - Учёт времени
+
+    /// Учёт времени включён: своя настройка задачи или настройка выбранной категории.
+    var tracksTime: Bool {
+        trackingOverride ?? selectedList?.tracksTimeByDefault ?? false
+    }
+
+    /// Пункт «Учёт времени» в меню ⋯: у сохранённой задачи меняется сразу.
+    func toggleTracking() {
+        let value = !tracksTime
+        trackingOverride = value
+        if let task { taskRepository.setTracking(task, value) }
+        toasts.show(value ? L10n.Focus.trackingOnToast : L10n.Focus.trackingOffToast)
+    }
+
+    /// Блок «Потрачено» — только у сохранённой задачи с учётом времени.
+    var showsTimeBlock: Bool { task != nil && tracksTime && focus != nil && timeEntries != nil }
+
+    var timeSummary: TaskTimeSummary {
+        guard let task else { return TaskTimeSummary(trackedMinutes: 0, estimateMinutes: nil) }
+        let tracked = focus?.trackedMinutes(for: task) ?? task.trackedMinutes
+        return TaskTimeSummary(trackedMinutes: tracked, estimateMinutes: task.effectiveEstimate)
+    }
+
+    /// Оценка шагом ±15 минут. Без своей оценки шаг идёт от длительности слота.
+    func adjustEstimate(by delta: Int) {
+        guard let task else { return }
+        taskRepository.setEstimate(task, minutes: max(0, (task.effectiveEstimate ?? 0) + delta))
+    }
+
+    /// Сессия этой задачи идёт (или на паузе).
+    var isLiveHere: Bool {
+        guard let task, let focus else { return false }
+        return focus.isLive(task)
+    }
+
+    /// Последние записи задачи: три или все.
+    var entryRows: [TimeEntryRow] {
+        allEntryRows.count > 3 && !showsAllEntries ? Array(allEntryRows.prefix(3)) : allEntryRows
+    }
+
+    var entryCount: Int { taskEntries.count }
+
+    var entriesToggleTitle: String? {
+        guard entryCount > 3 else { return nil }
+        return showsAllEntries ? L10n.Focus.showLess : L10n.Focus.showAll(entryCount)
+    }
+
+    func toggleAllEntries() { showsAllEntries.toggle() }
+
+    func startFocus() {
+        focus?.startFocus(task: task, on: .editor)
+    }
+
+    func startTimer() {
+        guard let task else { return }
+        focus?.startTimer(task: task)
+    }
+
+    func toggleLivePause() { focus?.togglePause() }
+
+    func openLive() { focus?.present(on: .editor) }
+
+    private var taskEntries: [TimeEntry] {
+        guard let task, let timeEntries else { return [] }
+        return timeEntries.entries(for: task).filter { $0.kind != .breakTime }
+    }
+
+    private var allEntryRows: [TimeEntryRow] {
+        let format = format
+        return taskEntries.map { TimeEntryRow(entry: $0, format: format) }
     }
 
     /// «Новая категория…» в меню категории.
@@ -468,8 +551,8 @@ final class TaskEditorViewModel {
             list: selectedList,
             subtasks: subtasks.filter { !$0.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty },
             isCompleted: isCompleted,
-            // Трекинг и оценка меняются сразу в модели, черновик их только переносит.
-            trackingOverride: task?.trackingOverride,
+            // Трекинг и оценка у сохранённой задачи меняются сразу в модели, черновик их только переносит.
+            trackingOverride: trackingOverride,
             estimateMinutes: task?.estimateMinutes
         )
     }

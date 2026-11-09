@@ -19,6 +19,13 @@ final class FocusEngine {
         let body: String
     }
 
+    /// Откуда открыт экран фокуса. Редактор задачи — полноэкранный, поэтому поверх него
+    /// экран показывает сам редактор, а не корень приложения.
+    enum ScreenHost: Equatable {
+        case root
+        case editor
+    }
+
     /// Что показать после нажатия «Стоп».
     enum StopResult: Equatable {
         /// Сохранять нечего — сессия закрыта.
@@ -37,7 +44,8 @@ final class FocusEngine {
     private static let storageKey = "focus.run"
 
     private(set) var run: FocusRun?
-    var isScreenPresented = false
+    private(set) var screenHost: ScreenHost?
+    var isScreenPresented: Bool { screenHost != nil }
     private(set) var banner: Banner?
     /// Время последнего тика. Экраны, которые его читают, обновляются, пока сессия идёт.
     private(set) var now: Date
@@ -81,14 +89,18 @@ final class FocusEngine {
     /// Сессия начата: мини-плеер и живые отметки видны.
     var isActive: Bool { run?.isActive == true }
 
-    func isLive(_ task: TaskItem) -> Bool {
+    func isLive(_ task: TaskItem) -> Bool { isLive(taskID: task.id) }
+
+    func isLive(taskID: UUID) -> Bool {
         guard let run, run.isActive else { return false }
-        return run.taskID == task.id
+        return run.taskID == taskID
     }
 
     /// Набрано в текущей фазе работы над задачей, секунды. Перерывы не считаются.
-    func liveSeconds(for task: TaskItem) -> TimeInterval {
-        guard let run, run.taskID == task.id, run.isTrackingWork(at: now) else { return 0 }
+    func liveSeconds(for task: TaskItem) -> TimeInterval { liveSeconds(taskID: task.id) }
+
+    func liveSeconds(taskID: UUID) -> TimeInterval {
+        guard let run, run.taskID == taskID, run.isTrackingWork(at: now) else { return 0 }
         return run.elapsed(at: now)
     }
 
@@ -107,11 +119,11 @@ final class FocusEngine {
     // MARK: - Запуск
 
     /// Фокус на задаче (или без неё). Тот же фокус уже идёт — только открывает экран.
-    func startFocus(task: TaskItem?, present: Bool = true) {
+    func startFocus(task: TaskItem?, present: Bool = true, on host: ScreenHost = .root) {
         refresh()
         if let run, run.isActive {
             if run.mode == .focus, run.taskID == task?.id {
-                isScreenPresented = true
+                screenHost = host
                 return
             }
             record(run.mode == .timer ? .completed : .interrupted, run, end: now)
@@ -119,7 +131,7 @@ final class FocusEngine {
         var next = FocusRun(mode: .focus, taskID: task?.id, total: length(of: .focus), isActive: true)
         next.resume(at: now)
         set(next)
-        if present { isScreenPresented = true }
+        if present { screenHost = host }
     }
 
     /// Секундомер на задаче. Экран не открывается — время видно в строке и мини-плеере.
@@ -135,22 +147,22 @@ final class FocusEngine {
     }
 
     /// «Фокус» без задачи: открывает текущую сессию или готовит новую, не запуская её.
-    func openFocus() {
+    func openFocus(on host: ScreenHost = .root) {
         refresh()
         if run == nil {
             set(FocusRun(mode: .focus, taskID: nil, total: length(of: .focus), isActive: false))
         }
-        isScreenPresented = true
+        screenHost = host
     }
 
-    func present() {
+    func present(on host: ScreenHost = .root) {
         guard run != nil else { return }
-        isScreenPresented = true
+        screenHost = host
     }
 
     /// Закрывает экран. Не начатая сессия при этом исчезает, идущая продолжается в мини-плеере.
     func closeScreen() {
-        isScreenPresented = false
+        screenHost = nil
         if run?.isActive == false { set(nil) }
     }
 
@@ -344,7 +356,7 @@ final class FocusEngine {
 
     private func clear() {
         set(nil)
-        isScreenPresented = false
+        screenHost = nil
     }
 
     private func set(_ run: FocusRun?) {

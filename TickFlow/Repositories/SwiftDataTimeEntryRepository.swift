@@ -27,6 +27,13 @@ final class SwiftDataTimeEntryRepository: TimeEntryRepository {
         return entry
     }
 
+    func insert(_ drafts: [TimeEntryDraft]) {
+        for draft in drafts where draft.isValid {
+            context.insert(TimeEntry(start: draft.start, end: draft.end, kind: draft.kind, status: draft.status, task: draft.task))
+        }
+        commit()
+    }
+
     func update(_ entry: TimeEntry, with draft: TimeEntryDraft) {
         guard draft.isValid else { return }
         entry.task = draft.task

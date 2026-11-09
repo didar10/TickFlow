@@ -100,4 +100,21 @@ struct SeedServiceTests {
         #expect(added.allSatisfy { $0.list?.id == own.id })
         #expect(added.allSatisfy { $0.sortOrder > 40 })
     }
+
+    @Test func sampleIncludesTimeTracking() {
+        let entries = SwiftDataTimeEntryRepository(context: container.mainContext)
+        SeedService.seedSample(tasks: repository, lists: repository, habits: habitRepository, timeEntries: entries)
+
+        #expect(repository.lists.filter(\.tracksTimeByDefault).map(\.name) == [L10n.Sample.work, L10n.Sample.learning])
+        #expect(repository.tasks.contains { $0.estimateMinutes != nil })
+        #expect(entries.entries.count > 20)
+        #expect(entries.entries.allSatisfy { $0.end <= .now && $0.end > $0.start })
+        #expect(entries.entries.filter { $0.kind == .breakTime }.allSatisfy { $0.task == nil })
+        #expect(entries.entries.contains { $0.status == .interrupted })
+
+        // Повторная загрузка не дублирует записи.
+        let count = entries.entries.count
+        SeedService.seedSample(tasks: repository, lists: repository, habits: habitRepository, timeEntries: entries)
+        #expect(entries.entries.count == count)
+    }
 }

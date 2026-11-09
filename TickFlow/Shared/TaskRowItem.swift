@@ -2,6 +2,14 @@ import Foundation
 
 /// Готовые данные строки задачи: View только рисует их, ничего не вычисляя.
 struct TaskRowItem: Identifiable, Equatable {
+    /// Учёт времени задачи. Живая сессия добавляется к `trackedMinutes` при показе.
+    struct Tracking: Equatable {
+        let trackedMinutes: Int
+        let estimateMinutes: Int?
+        /// Можно запустить таймер: задача не выполнена.
+        let canStart: Bool
+    }
+
     let id: UUID
     let title: String
     /// "!", "!!", "!!!" — пусто, если приоритета нет.
@@ -17,6 +25,8 @@ struct TaskRowItem: Identifiable, Equatable {
     let hasConflict: Bool
     let isCompleted: Bool
     let isUrgent: Bool
+    /// `nil` — учёт времени для задачи выключен.
+    let tracking: Tracking?
 
     @MainActor
     init(task: TaskItem, format: DisplayFormatter, allTasks: [TaskItem], meta: String? = nil) {
@@ -33,5 +43,8 @@ struct TaskRowItem: Identifiable, Equatable {
         hasConflict = ConflictDetector.conflict(for: task, in: allTasks, calendar: format.calendar) != nil
         isCompleted = task.isCompleted
         isUrgent = task.priority == .high
+        tracking = task.tracksTime
+            ? Tracking(trackedMinutes: task.trackedMinutes, estimateMinutes: task.effectiveEstimate, canStart: !task.isCompleted)
+            : nil
     }
 }

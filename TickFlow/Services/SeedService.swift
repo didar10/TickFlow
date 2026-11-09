@@ -4,14 +4,24 @@ import Foundation
 enum SeedService {
 
     @MainActor
-    static func seedIfNeeded(tasks: any TaskRepository, lists: any TaskListRepository, habits: any HabitRepository) {
+    static func seedIfNeeded(
+        tasks: any TaskRepository,
+        lists: any TaskListRepository,
+        habits: any HabitRepository,
+        timeEntries: (any TimeEntryRepository)? = nil
+    ) {
         guard lists.lists.isEmpty, tasks.tasks.isEmpty else { return }
-        seedSample(tasks: tasks, lists: lists, habits: habits)
+        seedSample(tasks: tasks, lists: lists, habits: habits, timeEntries: timeEntries)
     }
 
     /// Пример данных из макета, относительно сегодняшнего дня.
     @MainActor
-    static func seedSample(tasks: any TaskRepository, lists: any TaskListRepository, habits: any HabitRepository) {
+    static func seedSample(
+        tasks: any TaskRepository,
+        lists: any TaskListRepository,
+        habits: any HabitRepository,
+        timeEntries: (any TimeEntryRepository)? = nil
+    ) {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: .now)
 
@@ -55,12 +65,22 @@ enum SeedService {
             return item
         }
 
+        let quarterReport = task(L10n.Sample.quarterReport, work, day: 0, start: 690, end: 780, priority: .high)
+        quarterReport.estimateMinutes = 150
+        let designReview = task(L10n.Sample.designReview, work, day: 0, start: 660, end: 750, priority: .medium,
+                                notes: L10n.Sample.designReviewNotes, reminder: .tenMinutesBefore,
+                                subtasks: [(L10n.Sample.exportMockups, true), (L10n.Sample.prepareAgenda, true), (L10n.Sample.collectFeedback, false)])
+        let readThinking = task(L10n.Sample.readThinking, learning, day: nil)
+        readThinking.estimateMinutes = 240
+        let spanishLesson = task(L10n.Sample.spanishLesson, learning, day: -3, start: 1140, end: 1200, done: true)
+        let updatePortfolio = task(L10n.Sample.updatePortfolio, work, day: 6)
+        let workshopPrep = task(L10n.Sample.workshopPrep, work, day: 7, start: 840, end: 960)
+        let quarterPlanning = task(L10n.Sample.quarterPlanning, work, day: 8, start: 600, end: 720)
+
         tasks.insert([
             task(L10n.Sample.teamStandup, work, day: 0, start: 540, end: 570, repeatRule: .weekdays, reminder: .tenMinutesBefore),
-            task(L10n.Sample.designReview, work, day: 0, start: 660, end: 750, priority: .medium,
-                 notes: L10n.Sample.designReviewNotes, reminder: .tenMinutesBefore,
-                 subtasks: [(L10n.Sample.exportMockups, true), (L10n.Sample.prepareAgenda, true), (L10n.Sample.collectFeedback, false)]),
-            task(L10n.Sample.quarterReport, work, day: 0, start: 690, end: 780, priority: .high),
+            designReview,
+            quarterReport,
             task(L10n.Sample.lunchMia, personal, day: 0, start: 810, end: 870),
             task(L10n.Sample.gymUpper, health, day: 0, start: 1080, end: 1140, repeatRule: .weekly),
             task(L10n.Sample.payRent, errands, day: 0, priority: .medium, reminder: .atTime),
@@ -69,37 +89,89 @@ enum SeedService {
             task(L10n.Sample.productSync, work, day: -1, start: 840, end: 900, done: true),
             task(L10n.Sample.callBank, personal, day: -1, start: 960, end: 990, priority: .low),
             task(L10n.Sample.sprintPlanning, work, day: -2, start: 600, end: 690, done: true),
-            task(L10n.Sample.spanishLesson, learning, day: -3, start: 1140, end: 1200, done: true),
+            spanishLesson,
             task(L10n.Sample.groceries, errands, day: 2, start: 600, end: 660,
                  subtasks: [(L10n.Sample.oatMilk, false), (L10n.Sample.coffeeBeans, false)]),
             task(L10n.Sample.run10k, health, day: 3, start: 480, end: 570),
             task(L10n.Sample.oneOnOneAlex, work, day: 4, start: 900, end: 930, repeatRule: .weekly),
-            task(L10n.Sample.readThinking, learning, day: nil),
+            readThinking,
             task(L10n.Sample.renewPassport, errands, day: nil, priority: .low),
-            task(L10n.Sample.updatePortfolio, work, day: 6),
+            updatePortfolio,
             task(L10n.Sample.buyTickets, personal, day: -4, priority: .medium),
-            task(L10n.Sample.quarterPlanning, work, day: 8, start: 600, end: 720),
+            quarterPlanning,
             task(L10n.Sample.momBirthday, personal, day: 12),
             task(L10n.Sample.yoga, health, day: -6, start: 1080, end: 1140, done: true),
             task(L10n.Sample.carService, errands, day: -8, start: 540, end: 600, done: true),
-            task(L10n.Sample.workshopPrep, work, day: 7, start: 840, end: 960),
+            workshopPrep,
             task(L10n.Sample.codeReview, work, day: -2, start: 840, end: 900, done: true),
             task(L10n.Sample.pilates, health, day: -1, start: 1110, end: 1170, done: true),
         ])
         tasks.insert(makeHistory(today: today, calendar: calendar, lists: [work, personal, health, errands, learning],
                                  firstOrder: order))
 
+        if let timeEntries, timeEntries.entries.isEmpty {
+            timeEntries.insert(makeTimeEntries(
+                today: today, calendar: calendar,
+                today: (quarterReport, designReview, spanishLesson),
+                rotation: [quarterReport, designReview, updatePortfolio, workshopPrep, readThinking, spanishLesson, quarterPlanning, nil]
+            ))
+        }
+
         guard habits.habits.isEmpty else { return }
         habits.insert(makeHabits(today: today, calendar: calendar))
     }
 
+    /// Сессии фокуса и таймера за четыре недели, как в макете. Будущее время сегодняшнего дня отбрасывается.
+    private static func makeTimeEntries(
+        today: Date,
+        calendar: Calendar,
+        today tasks: (report: TaskItem, review: TaskItem, lesson: TaskItem),
+        rotation: [TaskItem?]
+    ) -> [TimeEntryDraft] {
+        var drafts: [TimeEntryDraft] = []
+        func add(_ day: Int, _ start: Int, _ minutes: Int, _ task: TaskItem?,
+                 _ kind: TimeEntryKind = .focus, _ status: TimeEntryStatus = .completed) {
+            guard let date = calendar.date(byAdding: .day, value: day, to: today) else { return }
+            let begin = date.addingTimeInterval(TimeInterval(start * 60))
+            let end = begin.addingTimeInterval(TimeInterval(minutes * 60))
+            guard end <= .now else { return }
+            drafts.append(TimeEntryDraft(task: kind == .breakTime ? nil : task, start: begin, end: end, kind: kind, status: status))
+        }
+
+        add(0, 485, 25, tasks.report)
+        add(0, 510, 5, nil, .breakTime)
+        add(0, 515, 25, tasks.report)
+        add(0, 540, 5, nil, .breakTime)
+        add(0, 575, 17, tasks.report, .focus, .interrupted)
+        add(0, 600, 25, tasks.review, .timer)
+        add(-1, 990, 20, tasks.lesson, .manual)
+
+        for day in stride(from: -1, through: -27, by: -1) {
+            guard let date = calendar.date(byAdding: .day, value: day, to: today) else { continue }
+            let weekday = calendar.component(.weekday, from: date)
+            if (weekday == 1 || weekday == 7) && day % 3 != 0 { continue }
+            let count = 1 + ((-day * 7) % 3) + (weekday == 3 ? 1 : 0)
+            var start = 540 + ((-day * 13) % 4) * 30
+            for index in 0..<count {
+                let task = rotation[(-day + index * 3) % rotation.count]
+                let length = index == count - 1 && (-day) % 4 == 0 ? 50 : 25
+                let status: TimeEntryStatus = (-day + index) % 9 == 0 ? .interrupted : (-day + index) % 13 == 0 ? .cancelled : .completed
+                add(day, start, status == .interrupted ? 14 : length, task, (-day + index) % 5 == 0 ? .timer : .focus, status)
+                add(day, start + length, length == 50 ? 10 : 5, nil, .breakTime)
+                start += length + 5 + ((index + day) % 2 != 0 ? 0 : 60)
+            }
+        }
+        return drafts
+    }
+
     private static func makeCategories() -> [TaskList] {
         [
-            TaskList(name: L10n.Sample.work, colorHex: "#5B5BD6", symbolName: "briefcase", sortOrder: 0),
+            TaskList(name: L10n.Sample.work, colorHex: "#5B5BD6", symbolName: "briefcase", sortOrder: 0, tracksTimeByDefault: true),
             TaskList(name: L10n.Sample.personal, colorHex: "#2A9792", symbolName: "house", sortOrder: 1),
             TaskList(name: L10n.Sample.health, colorHex: "#399E62", symbolName: "heart", sortOrder: 2),
             TaskList(name: L10n.Sample.errands, colorHex: "#CF8526", symbolName: "cart", sortOrder: 3),
-            TaskList(name: L10n.Sample.learning, colorHex: "#BE5A96", symbolName: "graduationcap", sortOrder: 4),
+            TaskList(name: L10n.Sample.learning, colorHex: "#BE5A96", symbolName: "graduationcap", sortOrder: 4,
+                     tracksTimeByDefault: true),
         ]
     }
 

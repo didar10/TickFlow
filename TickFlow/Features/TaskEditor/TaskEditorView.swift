@@ -135,6 +135,7 @@ struct TaskEditorView: View {
                     toolbarIconLabel("tag", color: viewModel.isCategoryExplicit ? Color(hex: viewModel.categoryColorHex) : AppColors.textTertiary)
                 }
                 Menu {
+                    trackingToggle
                     Button(L10n.Editor.openFullScreen, systemImage: "arrow.up.left.and.arrow.down.right", action: viewModel.openFullScreen)
                 } label: {
                     toolbarIconLabel("ellipsis", color: AppColors.textTertiary)
@@ -213,6 +214,10 @@ struct TaskEditorView: View {
                         .lineLimit(3...)
                         .focused($focus, equals: .notes)
 
+                    if viewModel.showsTimeBlock {
+                        TaskTimeSection(viewModel: viewModel)
+                    }
+
                     subtasksSection
                 }
                 .padding(.horizontal, 20)
@@ -260,6 +265,7 @@ struct TaskEditorView: View {
             priorityMenu(iconColor: viewModel.hasPriority ? viewModel.priority.color : AppColors.label, filled: true)
 
             Menu {
+                trackingToggle
                 if viewModel.isEditing {
                     Button(
                         viewModel.isCompleted ? L10n.Common.markUndone : L10n.Common.markDone,
@@ -385,6 +391,17 @@ struct TaskEditorView: View {
     }
 
     // MARK: - Меню
+
+    /// «Учёт времени» с галочкой, как переключатель.
+    private var trackingToggle: some View {
+        Button(action: viewModel.toggleTracking) {
+            if viewModel.tracksTime {
+                SwiftUI.Label(L10n.Focus.timeTracking, systemImage: "checkmark")
+            } else {
+                SwiftUI.Label(L10n.Focus.timeTracking, systemImage: "timer")
+            }
+        }
+    }
 
     private func categoryMenu<Label: View>(@ViewBuilder label: () -> Label) -> some View {
         Menu {

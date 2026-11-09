@@ -21,6 +21,7 @@ struct TickFlowApp: App {
             if let dependencies {
                 RootView(dependencies: dependencies)
                     .environment(dependencies)
+                    .environment(dependencies.focus)
             }
         }
     }

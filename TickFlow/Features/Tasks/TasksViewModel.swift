@@ -54,6 +54,7 @@ final class TasksViewModel {
     @ObservationIgnored private let actions: TaskActions
     @ObservationIgnored private let navigator: AppNavigator
     @ObservationIgnored private let clock: any AppClock
+    @ObservationIgnored private let focus: FocusEngine?
 
     init(
         tasks: any TaskRepository,
@@ -62,9 +63,11 @@ final class TasksViewModel {
         filter: TaskFilterStore,
         toasts: ToastCenter,
         navigator: AppNavigator,
+        focus: FocusEngine? = nil,
         clock: any AppClock = SystemClock()
     ) {
         self.clock = clock
+        self.focus = focus
         self.navigator = navigator
         taskRepository = tasks
         listRepository = lists
@@ -157,6 +160,25 @@ final class TasksViewModel {
     func open(_ id: UUID) {
         guard let task = task(id) else { return }
         editorRequest = .edit(task)
+    }
+
+    // MARK: - Учёт времени
+
+    var canTrackTime: Bool { focus != nil }
+
+    /// Кнопка таймера в строке: во время сессии задачи открывает экран, иначе запускает таймер.
+    func timerTapped(_ id: UUID) {
+        guard let focus, let task = task(id) else { return }
+        if focus.isLive(task) {
+            focus.present()
+        } else {
+            focus.startTimer(task: task)
+        }
+    }
+
+    /// «Фокус» в шапке: фокус без задачи.
+    func openFocus() {
+        focus?.openFocus()
     }
 
     /// «+» на экране задач: задача на сегодня без времени, как в макете.

@@ -80,12 +80,12 @@ final class AppDependencies {
     }
 
     private func seed() {
-        SeedService.seedIfNeeded(tasks: repository, lists: repository, habits: habitRepository)
+        SeedService.seedIfNeeded(tasks: repository, lists: repository, habits: habitRepository, timeEntries: timeEntryRepository)
     }
 
     /// «Загрузить пример»: категории, задачи и привычки с историей.
     func loadSampleData() {
-        SeedService.seedSample(tasks: repository, lists: repository, habits: habitRepository)
+        SeedService.seedSample(tasks: repository, lists: repository, habits: habitRepository, timeEntries: timeEntryRepository)
     }
 
     // MARK: - View model
@@ -102,6 +102,7 @@ final class AppDependencies {
             filter: taskFilter,
             toasts: toasts,
             navigator: navigator,
+            focus: focus,
             clock: clock
         )
     }
@@ -134,6 +135,8 @@ final class AppDependencies {
             tasks: repository,
             lists: repository,
             toasts: toasts,
+            focus: focus,
+            timeEntries: timeEntryRepository,
             clock: clock
         )
     }
