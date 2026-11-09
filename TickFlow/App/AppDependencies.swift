@@ -120,6 +120,9 @@ final class AppDependencies {
             toasts: toasts,
             navigator: navigator,
             loadSampleData: { [weak self] in self?.loadSampleData() },
+            timeEntries: timeEntryRepository,
+            focus: focus,
+            makeSessionDetail: { [unowned self] in makeSessionDetail(entry: $0, onOpenTask: $1) },
             clock: clock
         )
     }

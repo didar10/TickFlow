@@ -180,6 +180,14 @@ enum L10n {
         static func dayOfTotal(_ index: Int, _ total: Int) -> String {
             String(localized: "calendar.dayOfTotal", defaultValue: "День \(index) из \(total)")
         }
+        static var trackedLegend: String { String(localized: "calendar.trackedLegend", defaultValue: "Учтено") }
+        static var trackedTime: String { String(localized: "calendar.trackedTime", defaultValue: "Учтённое время") }
+        static var sessionStopped: String { String(localized: "calendar.sessionStopped", defaultValue: "остановлена") }
+        static var sessionNow: String { String(localized: "calendar.sessionNow", defaultValue: "сейчас") }
+        static var inProgress: String { String(localized: "calendar.inProgress", defaultValue: "Идёт") }
+        static func trackedTotal(_ duration: String, _ sessions: String) -> String {
+            String(localized: "calendar.trackedTotal", defaultValue: "\(duration) · \(sessions)")
+        }
     }
 
     enum Editor {

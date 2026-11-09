@@ -24,6 +24,9 @@ struct CalendarView: View {
             if wants { viewModel.handleNewTaskRequest() }
         }
         .onChange(of: viewModel.preferredMode) { viewModel.applyPreferredMode() }
+        .sheet(item: $viewModel.sessionDetail, onDismiss: viewModel.sessionClosed) { detail in
+            SessionDetailView(viewModel: detail)
+        }
         .sheet(isPresented: $viewModel.isFilterPresented) {
             FilterSheetView(viewModel: dependencies.makeFilterSheetViewModel())
                 .presentationDetents([.height(330)])
@@ -168,6 +171,7 @@ struct CalendarView: View {
                 VStack(spacing: 0) {
                     MonthGrid(viewModel: viewModel)
                     AgendaList(viewModel: viewModel)
+                    TrackedTimeSection(viewModel: viewModel)
                 }
                 .padding(.bottom, 100)
             }

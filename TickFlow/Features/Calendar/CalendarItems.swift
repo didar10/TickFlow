@@ -71,6 +71,34 @@ enum CalendarItems {
         /// До трёх точек: цвет категории, красный для просроченного, серый для выполненного.
         let dotHexes: [String]
         let more: String
+        /// Учтённое за день: «1ч10мин» или пусто.
+        let tracked: String
+    }
+
+    /// Запись учёта времени в колонке дня: полоса справа от задач.
+    struct Session: Identifiable, Equatable {
+        let id: UUID
+        let dayIndex: Int
+        let startMinute: Int
+        let endMinute: Int
+        let title: String
+        /// «Фокус · 25 мин · остановлена».
+        let detail: String
+        let colorHex: String
+        let isInterrupted: Bool
+    }
+
+    /// Строка «Учтённое время» под сеткой месяца.
+    struct TrackedRow: Identifiable, Equatable {
+        let id: UUID
+        let title: String
+        /// «08:00 – 08:25 · Фокус».
+        let time: String
+        let duration: String
+        let kind: TimeEntryKind
+        let colorHex: String?
+        let hasTask: Bool
+        let isInterrupted: Bool
     }
 
     struct AgendaRow: Identifiable {

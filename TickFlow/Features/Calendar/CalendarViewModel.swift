@@ -83,6 +83,13 @@ final class CalendarViewModel {
     @ObservationIgnored private let navigator: AppNavigator
     @ObservationIgnored private let loadSampleData: () -> Void
     @ObservationIgnored private let clock: any AppClock
+    @ObservationIgnored private let timeEntries: (any TimeEntryRepository)?
+    @ObservationIgnored let focus: FocusEngine?
+    @ObservationIgnored private let makeSessionDetail: ((TimeEntry, @escaping (TaskItem) -> Void) -> SessionDetailViewModel)?
+    /// Лист «Сессия» для нажатой полосы или строки.
+    var sessionDetail: SessionDetailViewModel?
+    /// Задача, открытая из листа сессии: редактор появится, когда лист закроется.
+    @ObservationIgnored private var taskAfterSession: TaskItem?
 
     init(
         tasks: any TaskRepository,
@@ -92,9 +99,15 @@ final class CalendarViewModel {
         toasts: ToastCenter,
         navigator: AppNavigator,
         loadSampleData: @escaping () -> Void,
+        timeEntries: (any TimeEntryRepository)? = nil,
+        focus: FocusEngine? = nil,
+        makeSessionDetail: ((TimeEntry, @escaping (TaskItem) -> Void) -> SessionDetailViewModel)? = nil,
         clock: any AppClock = SystemClock()
     ) {
         self.clock = clock
+        self.timeEntries = timeEntries
+        self.focus = focus
+        self.makeSessionDetail = makeSessionDetail
         taskRepository = tasks
         listRepository = lists
         self.settings = settings
@@ -385,8 +398,107 @@ final class CalendarViewModel {
                 dotHexes: onDay.prefix(3).map { task in
                     task.isCompleted ? "#D1D1D6" : day < today ? "#E5484D" : (task.list?.colorHex ?? AppColors.fallbackList)
                 },
-                more: onDay.count > 3 ? "+\(onDay.count - 3)" : ""
+                more: onDay.count > 3 ? "+\(onDay.count - 3)" : "",
+                tracked: trackedLabel(on: day)
             )
+        }
+    }
+
+    // MARK: - Учтённое время
+
+    /// Записи работы за день: без перерывов и отброшенных.
+    func workEntries(on day: Date) -> [TimeEntry] {
+        guard let timeEntries else { return [] }
+        return timeEntries.entries(on: day, calendar: calendar)
+            .filter { $0.countsAsWork }
+            .sorted { $0.start < $1.start }
+    }
+
+    private func trackedLabel(on day: Date) -> String {
+        let minutes = workEntries(on: day).reduce(0) { $0 + $1.durationMinutes }
+        return minutes > 0 ? DateFormatting.duration(minutes: minutes).replacingOccurrences(of: " ", with: "") : ""
+    }
+
+    /// Полосы записей в колонках «Дня», «3 дней» и «Недели».
+    var sessions: [CalendarItems.Session] {
+        guard !isMonth else { return [] }
+        return visibleDays.enumerated().flatMap { index, day in
+            workEntries(on: day).map { entry in
+                let start = format.minute(of: entry.start)
+                let end = calendar.isDate(entry.end, inSameDayAs: entry.start) ? format.minute(of: entry.end) : 1440
+                var detail = FocusText.kind(entry.kind) + " · " + DateFormatting.duration(minutes: entry.durationMinutes)
+                if entry.status == .interrupted { detail += " · " + L10n.Calendar.sessionStopped }
+                return CalendarItems.Session(
+                    id: entry.id, dayIndex: index, startMinute: start, endMinute: max(end, start + 1),
+                    title: SessionDetailViewModel.title(for: entry), detail: detail,
+                    colorHex: entry.task?.list?.colorHex ?? AppColors.fallbackList,
+                    isInterrupted: entry.status == .interrupted
+                )
+            }
+        }
+    }
+
+    /// Идёт учёт: сессия фокуса или таймер, не перерыв.
+    private var isTrackingLive: Bool {
+        guard let run = focus?.run else { return false }
+        return run.isActive && !run.phase.isBreak && !run.isReady
+    }
+
+    /// Колонка сегодняшнего дня, если сейчас идёт учёт.
+    var liveDayIndex: Int? {
+        guard isTrackingLive, !isMonth else { return nil }
+        return visibleDays.firstIndex { format.isToday($0) }
+    }
+
+    /// Колонки с полосой учтённого времени: задачи в них уже.
+    var sessionDayIndexes: Set<Int> {
+        var indexes = Set(sessions.map(\.dayIndex))
+        if let live = liveDayIndex { indexes.insert(live) }
+        return indexes
+    }
+
+    var trackedRows: [CalendarItems.TrackedRow] {
+        workEntries(on: selectedDate).map { entry in
+            CalendarItems.TrackedRow(
+                id: entry.id,
+                title: SessionDetailViewModel.title(for: entry),
+                time: format.time(entry.start) + " – " + format.time(entry.end) + " · " + FocusText.kind(entry.kind),
+                duration: DateFormatting.duration(minutes: entry.durationMinutes),
+                kind: entry.kind,
+                colorHex: entry.task?.list?.colorHex,
+                hasTask: entry.task != nil,
+                isInterrupted: entry.status == .interrupted
+            )
+        }
+    }
+
+    var trackedMinutes: Int { workEntries(on: selectedDate).reduce(0) { $0 + $1.durationMinutes } }
+
+    /// Сессия идёт в выбранный день — строка «Идёт» в списке.
+    var showsLiveTracked: Bool { isTrackingLive && format.isToday(selectedDate) }
+
+    func openSession(_ id: UUID) {
+        guard let makeSessionDetail, let entry = timeEntries?.entries.first(where: { $0.id == id }) else { return }
+        sessionDetail = makeSessionDetail(entry) { [weak self] in self?.openTaskFromSession($0) }
+    }
+
+    func timeText(_ date: Date) -> String { format.time(date) }
+    func minute(of date: Date) -> Int { format.minute(of: date) }
+
+    func openLiveSession() {
+        focus?.present()
+    }
+
+    /// «Открыть задачу» из листа сессии.
+    func openTaskFromSession(_ task: TaskItem) {
+        taskAfterSession = task
+    }
+
+    func sessionClosed() {
+        sessionDetail = nil
+        if let task = taskAfterSession {
+            taskAfterSession = nil
+            editorRequest = .edit(task)
         }
     }
 
