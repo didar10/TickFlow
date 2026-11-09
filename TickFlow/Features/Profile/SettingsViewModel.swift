@@ -27,6 +27,7 @@ final class SettingsViewModel {
     @ObservationIgnored private let tasks: any TaskRepository
     @ObservationIgnored private let lists: any TaskListRepository
     @ObservationIgnored private let habits: any HabitRepository
+    @ObservationIgnored private let timeEntries: any TimeEntryRepository
     @ObservationIgnored private let toasts: ToastCenter
     @ObservationIgnored private let navigator: AppNavigator
     @ObservationIgnored private let loadSampleData: () -> Void
@@ -38,6 +39,7 @@ final class SettingsViewModel {
         tasks: any TaskRepository,
         lists: any TaskListRepository,
         habits: any HabitRepository,
+        timeEntries: any TimeEntryRepository,
         toasts: ToastCenter,
         navigator: AppNavigator,
         loadSampleData: @escaping () -> Void,
@@ -50,6 +52,7 @@ final class SettingsViewModel {
         self.tasks = tasks
         self.lists = lists
         self.habits = habits
+        self.timeEntries = timeEntries
         self.toasts = toasts
         self.navigator = navigator
         self.loadSampleData = loadSampleData
@@ -177,8 +180,11 @@ final class SettingsViewModel {
 
     var exportFile: ExportFile {
         let day = clock.now.formatted(.iso8601.year().month().day())
-        return ExportFile(fileName: "TickFlow-\(day).json") { [tasks, lists, habits, clock] in
-            try ExportService.makeJSON(tasks: tasks.tasks, lists: lists.lists, habits: habits.habits, exportedAt: clock.now)
+        return ExportFile(fileName: "TickFlow-\(day).json") { [tasks, lists, habits, timeEntries, clock] in
+            try ExportService.makeJSON(
+                tasks: tasks.tasks, lists: lists.lists, habits: habits.habits,
+                timeEntries: timeEntries.entries, exportedAt: clock.now
+            )
         }
     }
 

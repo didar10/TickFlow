@@ -23,7 +23,7 @@ struct SettingsViewModelTests {
 
     private func screen() -> SettingsViewModel {
         SettingsViewModel(
-            settings: settings, tasks: tasks, lists: tasks, habits: habits, toasts: toasts, navigator: navigator,
+            settings: settings, tasks: tasks, lists: tasks, habits: habits, timeEntries: FakeTimeEntryRepository(), toasts: toasts, navigator: navigator,
             loadSampleData: { [sampleLoads] in sampleLoads.value += 1 }, clock: clock, reminders: reminders
         )
     }

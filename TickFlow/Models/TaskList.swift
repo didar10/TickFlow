@@ -9,6 +9,8 @@ final class TaskList {
     var symbolName: String = "list.bullet"
     var sortOrder: Int = 0
     var createdAt: Date = Date.now
+    /// Задачи категории по умолчанию показывают таймер, фокус и потраченное время.
+    var tracksTimeByDefault: Bool = false
 
     @Relationship(deleteRule: .cascade, inverse: \TaskItem.list)
     var tasks: [TaskItem] = []
@@ -17,14 +19,21 @@ final class TaskList {
         name: String,
         colorHex: String = "#3B82F6",
         symbolName: String = "list.bullet",
-        sortOrder: Int = 0
+        sortOrder: Int = 0,
+        tracksTimeByDefault: Bool = false
     ) {
         self.id = UUID()
         self.name = name
         self.colorHex = colorHex
         self.symbolName = symbolName
         self.sortOrder = sortOrder
+        self.tracksTimeByDefault = tracksTimeByDefault
         self.createdAt = .now
+    }
+
+    /// Сколько задач категории переопределяют её настройку трекинга.
+    var trackingOverrideCount: Int {
+        tasks.filter { $0.trackingOverride != nil && $0.trackingOverride != tracksTimeByDefault }.count
     }
 
     var activeCount: Int {

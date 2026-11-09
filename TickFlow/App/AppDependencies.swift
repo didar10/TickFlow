@@ -10,6 +10,7 @@ final class AppDependencies {
     @ObservationIgnored private let container: ModelContainer
     @ObservationIgnored private let repository: SwiftDataRepository
     @ObservationIgnored private let habitRepository: SwiftDataHabitRepository
+    @ObservationIgnored private let timeEntryRepository: SwiftDataTimeEntryRepository
     @ObservationIgnored let settingsRepository: UserDefaultsSettingsRepository
     @ObservationIgnored let toasts = ToastCenter()
     /// Фильтр категорий и статуса, общий для календаря и задач.
@@ -21,7 +22,7 @@ final class AppDependencies {
     @ObservationIgnored private let reminders: any ReminderScheduling
 
     static let modelTypes: [any PersistentModel.Type] = [
-        TaskList.self, TaskItem.self, Subtask.self, Habit.self, HabitLog.self
+        TaskList.self, TaskItem.self, Subtask.self, Habit.self, HabitLog.self, TimeEntry.self
     ]
 
     init(
@@ -35,6 +36,7 @@ final class AppDependencies {
         self.reminders = reminders
         repository = SwiftDataRepository(context: container.mainContext, clock: clock, reminders: reminders)
         habitRepository = SwiftDataHabitRepository(context: container.mainContext, clock: clock, reminders: reminders)
+        timeEntryRepository = SwiftDataTimeEntryRepository(context: container.mainContext)
         settingsRepository = UserDefaultsSettingsRepository(defaults: defaults)
         repository.remindersEnabled = settingsRepository.settings.taskRemindersEnabled
         habitRepository.remindersEnabled = settingsRepository.settings.habitRemindersEnabled
@@ -161,6 +163,7 @@ final class AppDependencies {
             tasks: repository,
             lists: repository,
             habits: habitRepository,
+            timeEntries: timeEntryRepository,
             toasts: toasts,
             navigator: navigator,
             loadSampleData: { [weak self] in self?.loadSampleData() },

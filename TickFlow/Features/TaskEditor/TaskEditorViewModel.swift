@@ -456,7 +456,10 @@ final class TaskEditorViewModel {
             repeatRule: schedule.day != nil ? schedule.repeatRule : .never,
             list: selectedList,
             subtasks: subtasks.filter { !$0.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty },
-            isCompleted: isCompleted
+            isCompleted: isCompleted,
+            // Трекинг и оценка меняются сразу в модели, черновик их только переносит.
+            trackingOverride: task?.trackingOverride,
+            estimateMinutes: task?.estimateMinutes
         )
     }
 }

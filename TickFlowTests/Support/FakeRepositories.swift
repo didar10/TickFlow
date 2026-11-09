@@ -116,6 +116,14 @@ final class FakeTaskRepository: TaskRepository, TaskListRepository {
         movedToTodayIDs.append(task.id)
     }
 
+    func setTracking(_ task: TaskItem, _ override: Bool?) {
+        task.trackingOverride = override
+    }
+
+    func setEstimate(_ task: TaskItem, minutes: Int?) {
+        task.estimateMinutes = minutes.map { max(0, $0) }
+    }
+
     func rescheduleReminders(enabled: Bool) {
         rescheduleCalls.append(enabled)
     }
@@ -204,5 +212,36 @@ final class FakeHabitRepository: HabitRepository {
         let log = HabitLog(day: calendar.startOfDay(for: day))
         habit.logs.append(log)
         return log
+    }
+}
+
+@MainActor
+final class FakeTimeEntryRepository: TimeEntryRepository {
+    private(set) var entries: [TimeEntry] = []
+    private(set) var deletedIDs: [UUID] = []
+
+    init(_ entries: [TimeEntry] = []) {
+        self.entries = entries
+    }
+
+    @discardableResult
+    func add(_ draft: TimeEntryDraft) -> TimeEntry? {
+        guard draft.isValid else { return nil }
+        let entry = TimeEntry(start: draft.start, end: draft.end, kind: draft.kind, status: draft.status, task: draft.task)
+        entries.append(entry)
+        return entry
+    }
+
+    func update(_ entry: TimeEntry, with draft: TimeEntryDraft) {
+        guard draft.isValid else { return }
+        entry.task = draft.task
+        entry.start = draft.start
+        entry.end = draft.end
+        entry.status = draft.status
+    }
+
+    func delete(_ entry: TimeEntry) {
+        deletedIDs.append(entry.id)
+        entries.removeAll { $0.id == entry.id }
     }
 }

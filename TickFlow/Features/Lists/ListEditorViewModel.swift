@@ -8,6 +8,7 @@ final class ListEditorViewModel {
     var name = ""
     private(set) var colorHex = AppPalette.listColors[0]
     private(set) var symbolName = AppPalette.listSymbols[0]
+    var tracksTimeByDefault = false
     var isDeleteConfirmationPresented = false
     private(set) var isFinished = false
 
@@ -23,6 +24,7 @@ final class ListEditorViewModel {
             name = list.name
             colorHex = list.colorHex
             symbolName = list.symbolName
+            tracksTimeByDefault = list.tracksTimeByDefault
         } else {
             // Новой категории — первый цвет, которого ещё нет.
             let used = Set(lists.lists.map { $0.colorHex.uppercased() })
@@ -51,7 +53,10 @@ final class ListEditorViewModel {
     func save() {
         guard canSave else { return }
         listRepository.save(
-            TaskListDraft(name: trimmedName, colorHex: colorHex, symbolName: symbolName),
+            TaskListDraft(
+                name: trimmedName, colorHex: colorHex, symbolName: symbolName,
+                tracksTimeByDefault: tracksTimeByDefault
+            ),
             to: list
         )
         isFinished = true

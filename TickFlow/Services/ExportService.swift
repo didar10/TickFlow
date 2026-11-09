@@ -10,12 +10,14 @@ enum ExportService {
         let categories: [CategoryRecord]
         let tasks: [TaskRecord]
         let habits: [HabitRecord]
+        let timeEntries: [TimeEntryRecord]
     }
 
     struct CategoryRecord: Encodable {
         let id: UUID
         let name: String
         let color: String
+        let tracksTimeByDefault: Bool
     }
 
     struct TaskRecord: Encodable {
@@ -32,6 +34,8 @@ enum ExportService {
         let isCompleted: Bool
         let completedAt: Date?
         let createdAt: Date
+        let trackingOverride: Bool?
+        let estimateMinutes: Int?
         let subtasks: [SubtaskRecord]
     }
 
@@ -53,6 +57,15 @@ enum ExportService {
         let logs: [LogRecord]
     }
 
+    struct TimeEntryRecord: Encodable {
+        let id: UUID
+        let taskID: UUID?
+        let start: Date
+        let end: Date
+        let kind: Int
+        let status: Int
+    }
+
     struct LogRecord: Encodable {
         let day: Date
         let value: Double
@@ -60,11 +73,28 @@ enum ExportService {
     }
 
     @MainActor
-    static func makeJSON(tasks: [TaskItem], lists: [TaskList], habits: [Habit], exportedAt: Date = .now) throws -> Data {
-        let categories: [CategoryRecord] = lists.map { CategoryRecord(id: $0.id, name: $0.name, color: $0.colorHex) }
+    static func makeJSON(
+        tasks: [TaskItem],
+        lists: [TaskList],
+        habits: [Habit],
+        timeEntries: [TimeEntry] = [],
+        exportedAt: Date = .now
+    ) throws -> Data {
+        let categories: [CategoryRecord] = lists.map {
+            CategoryRecord(id: $0.id, name: $0.name, color: $0.colorHex, tracksTimeByDefault: $0.tracksTimeByDefault)
+        }
         let taskRecords: [TaskRecord] = tasks.map(record)
         let habitRecords: [HabitRecord] = habits.map(record)
-        let archive = Archive(exportedAt: exportedAt, categories: categories, tasks: taskRecords, habits: habitRecords)
+        let entryRecords: [TimeEntryRecord] = timeEntries
+            .sorted { $0.start < $1.start }
+            .map {
+                TimeEntryRecord(id: $0.id, taskID: $0.task?.id, start: $0.start, end: $0.end,
+                                kind: $0.kindRaw, status: $0.statusRaw)
+            }
+        let archive = Archive(
+            exportedAt: exportedAt, categories: categories, tasks: taskRecords,
+            habits: habitRecords, timeEntries: entryRecords
+        )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
@@ -81,6 +111,7 @@ enum ExportService {
             due: task.dueDate, hasTime: task.hasTime, durationMinutes: task.durationMinutes,
             lastDay: task.endDay, priority: task.priorityRaw, repeatRule: task.repeatRaw,
             isCompleted: task.isCompleted, completedAt: task.completedAt, createdAt: task.createdAt,
+            trackingOverride: task.trackingOverride, estimateMinutes: task.estimateMinutes,
             subtasks: subtasks
         )
     }

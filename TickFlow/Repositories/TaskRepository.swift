@@ -24,6 +24,10 @@ protocol TaskRepository: AnyObject {
     /// Меняет дни задачи без времени: перенос или растягивание многодневной.
     func setDays(_ task: TaskItem, start: Date, end: Date)
     func moveToToday(_ task: TaskItem)
+    /// Трекинг времени только для этой задачи. `nil` — как у категории.
+    func setTracking(_ task: TaskItem, _ override: Bool?)
+    /// Своя оценка в минутах. `nil` — длительность слота, `0` — без оценки.
+    func setEstimate(_ task: TaskItem, minutes: Int?)
     /// Перепланирует напоминания всех задач (например, после смены настроек).
     func rescheduleReminders(enabled: Bool)
 }
