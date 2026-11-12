@@ -338,6 +338,23 @@ struct OnboardingViewModelTests {
         #expect(habits.savedDrafts.isEmpty)
     }
 
+    /// Выбранная цель не должна мешать примеру добавить свои привычки.
+    @Test func sampleHabitsLoadWhenGoalSelected() throws {
+        let onboarding = OnboardingViewModel(
+            settings: settings, habits: habits, tasks: tasks, navigator: navigator,
+            loadSampleData: { [tasks, habits] in SeedService.seedSample(tasks: tasks, lists: tasks, habits: habits) },
+            clock: FixedClock("2026-11-08 09:00"), reminders: reminders
+        )
+        let water = try #require(OnboardingViewModel.goals.first { $0.habit.kind == .amount })
+        onboarding.toggleGoal(water)
+        onboarding.loadSample()
+
+        let names = habits.habits.map(\.name)
+        #expect(names.count == 5)
+        #expect(names.filter { $0 == "Пить воду" }.count == 1)
+        #expect(habits.savedDrafts.isEmpty)
+    }
+
     @Test func finalButtonsOpenEditorsAfterDismiss() async throws {
         let onboarding = onboarding()
         for _ in 0..<4 { onboarding.skip() }

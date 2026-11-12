@@ -22,7 +22,8 @@ private struct FocusStopFlowModifier: ViewModifier {
             ) { confirmation in
                 Button(L10n.Focus.saveMinutes(confirmation.minutes), action: flow.saveInterrupted)
                 Button(L10n.Focus.discardSession, role: .destructive, action: flow.discard)
-                Button(L10n.Focus.resume, role: .cancel, action: flow.keepGoing)
+                // Без role: .cancel — в iOS 26 такую кнопку диалог прячет и оставляет только тап мимо.
+                Button(L10n.Focus.resume, action: flow.keepGoing)
             } message: { confirmation in
                 Text(L10n.Focus.endSessionMessage(confirmation.minutes, confirmation.total))
             }
