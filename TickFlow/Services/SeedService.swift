@@ -15,6 +15,9 @@ enum SeedService {
     }
 
     /// Пример данных из макета, относительно сегодняшнего дня.
+    /// Поверх своих данных добавляет только недостающее: категории и привычки — по названию,
+    /// задачи примера — если задачи с таким названием ещё нет. История выполненных задач
+    /// добавляется, только если пример ещё не загружали, поэтому повторная загрузка ничего не дублирует.
     @MainActor
     static func seedSample(
         tasks: any TaskRepository,
@@ -25,15 +28,23 @@ enum SeedService {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: .now)
 
-        let categories = lists.lists.isEmpty ? makeCategories() : []
+        let existingLists = Set(lists.lists.map(\.name))
+        var listOrder = (lists.lists.map(\.sortOrder).max() ?? -1) + 1
+        let categories = makeCategories().filter { !existingLists.contains($0.name) }
+        for category in categories where !existingLists.isEmpty {
+            category.sortOrder = listOrder
+            listOrder += 1
+        }
         lists.insert(categories)
         let all = lists.lists
-        func category(_ name: String) -> TaskList? { all.first { $0.name == name } ?? all.first }
+        func category(_ name: String) -> TaskList? { all.first { $0.name == name } }
 
         let work = category(L10n.Sample.work), personal = category(L10n.Sample.personal), health = category(L10n.Sample.health)
         let errands = category(L10n.Sample.errands), learning = category(L10n.Sample.learning)
 
-        var order = (tasks.tasks.map(\.sortOrder).max() ?? 0) + 1
+        let existing = tasks.tasks
+        let existingTitles = Set(existing.map(\.title))
+        var order = (existing.map(\.sortOrder).max() ?? 0) + 1
         func day(_ offset: Int) -> Date { calendar.date(byAdding: .day, value: offset, to: today) ?? today }
         func task(
             _ title: String, _ list: TaskList?, day offset: Int?, start: Int? = nil, end: Int? = nil,
@@ -47,7 +58,8 @@ enum SeedService {
             let item = TaskItem(
                 title: title, notes: notes, dueDate: due, hasTime: start != nil,
                 durationMinutes: start.flatMap { s in end.map { $0 - s } } ?? 60,
-                priority: priority, list: list, sortOrder: order
+                // Задачу, которая уже есть, не вставляем; без категории она не попадёт в базу через связь.
+                priority: priority, list: existingTitles.contains(title) ? nil : list, sortOrder: order
             )
             order += 1
             item.endDay = endDay.map(day)
@@ -77,7 +89,7 @@ enum SeedService {
         let workshopPrep = task(L10n.Sample.workshopPrep, work, day: 7, start: 840, end: 960)
         let quarterPlanning = task(L10n.Sample.quarterPlanning, work, day: 8, start: 600, end: 720)
 
-        tasks.insert([
+        let sampleTasks = [
             task(L10n.Sample.teamStandup, work, day: 0, start: 540, end: 570, repeatRule: .weekdays, reminder: .tenMinutesBefore),
             designReview,
             quarterReport,
@@ -105,20 +117,33 @@ enum SeedService {
             workshopPrep,
             task(L10n.Sample.codeReview, work, day: -2, start: 840, end: 900, done: true),
             task(L10n.Sample.pilates, health, day: -1, start: 1110, end: 1170, done: true),
-        ])
-        tasks.insert(makeHistory(today: today, calendar: calendar, lists: [work, personal, health, errands, learning],
-                                 firstOrder: order))
+        ]
+        let isSampleLoaded = sampleTasks.contains { existingTitles.contains($0.title) }
+        tasks.insert(sampleTasks.filter { !existingTitles.contains($0.title) })
+        if !isSampleLoaded {
+            tasks.insert(makeHistory(today: today, calendar: calendar, lists: [work, personal, health, errands, learning],
+                                     firstOrder: order))
+        }
+        /// Записи времени ссылаются на уже существующую задачу, если пример загружали раньше.
+        func resolved(_ item: TaskItem) -> TaskItem { existing.first { $0.title == item.title } ?? item }
 
         if let timeEntries, timeEntries.entries.isEmpty {
             timeEntries.insert(makeTimeEntries(
                 today: today, calendar: calendar,
-                today: (quarterReport, designReview, spanishLesson),
+                today: (resolved(quarterReport), resolved(designReview), resolved(spanishLesson)),
                 rotation: [quarterReport, designReview, updatePortfolio, workshopPrep, readThinking, spanishLesson, quarterPlanning, nil]
+                    .map { $0.map(resolved) }
             ))
         }
 
-        guard habits.habits.isEmpty else { return }
-        habits.insert(makeHabits(today: today, calendar: calendar))
+        let existingHabits = Set(habits.habits.map(\.name))
+        var habitOrder = (habits.habits.map(\.sortOrder).max() ?? -1) + 1
+        let newHabits = makeHabits(today: today, calendar: calendar).filter { !existingHabits.contains($0.name) }
+        for habit in newHabits where !existingHabits.isEmpty {
+            habit.sortOrder = habitOrder
+            habitOrder += 1
+        }
+        habits.insert(newHabits)
     }
 
     /// Сессии фокуса и таймера за четыре недели, как в макете. Будущее время сегодняшнего дня отбрасывается.

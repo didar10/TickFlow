@@ -59,6 +59,8 @@ struct CalendarView: View {
             Button(task.isCompleted ? L10n.Calendar.markIncomplete : L10n.Common.completed) { viewModel.toggleFromMenu() }
             Button(L10n.Common.open) { viewModel.open(task.id) }
             Button(L10n.Common.delete, role: .destructive) { viewModel.deleteFromMenu() }
+            // Без role: .cancel — в iOS 26 такую кнопку диалог прячет.
+            Button(L10n.Common.cancel) {}
         }
     }
 

@@ -714,7 +714,7 @@ final class CalendarViewModel {
         pending = nil
         pendingScope = nil
         guard let task = task(change.taskID) else { return }
-        let undo = ScheduleCommit.commit(change.draft, to: task, scope: scope, repository: taskRepository)
+        let undo = ScheduleCommit.commit(change.draft, to: task, scope: scope, repository: taskRepository, calendar: calendar)
 
         var message = change.message
         if change.draft.hasTime, change.draft.endDay == nil, let start = change.draft.dueDate {

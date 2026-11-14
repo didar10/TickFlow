@@ -90,6 +90,31 @@ struct ScheduleCommitTests {
         #expect(edited.draft.dueDate == date("2026-11-08 08:00"))
     }
 
+    /// Просроченное вхождение перенесли на сегодня, а серия тоже стоит сегодня — серия начинается завтра.
+    @Test func thisOccurrenceSkipsSeriesDayItMovedTo() {
+        let repository = FakeTaskRepository()
+        let task = fixture.task("Планёрка", due: "2026-11-09 09:00", repeatRule: .weekdays)
+        repository.insert([task])
+
+        _ = ScheduleCommit.commit(draft(from: task, due: "2026-11-10 09:00"), to: task, scope: .thisOccurrence,
+                                  repository: repository, calendar: TestCalendar.moscow)
+
+        #expect(repository.savedDrafts[0].draft.dueDate == date("2026-11-11 09:00"))
+        #expect(repository.savedDrafts[1].draft.dueDate == date("2026-11-10 09:00"))
+    }
+
+    /// Перенос дальше следующей даты серии не съедает вхождения между ними.
+    @Test func thisOccurrenceMovedLaterKeepsNextSeriesDay() {
+        let repository = FakeTaskRepository()
+        let task = fixture.task("Планёрка", due: "2026-11-09 09:00", repeatRule: .weekdays)
+        repository.insert([task])
+
+        _ = ScheduleCommit.commit(draft(from: task, due: "2026-11-11 09:00"), to: task, scope: .thisOccurrence,
+                                  repository: repository, calendar: TestCalendar.moscow)
+
+        #expect(repository.savedDrafts[0].draft.dueDate == date("2026-11-10 09:00"))
+    }
+
     @Test func thisAndFollowingChangesWholeSeries() {
         let repository = FakeTaskRepository()
         let task = fixture.task(due: "2026-11-08 07:00", repeatRule: .daily)

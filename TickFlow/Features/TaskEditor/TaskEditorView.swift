@@ -56,7 +56,8 @@ struct TaskEditorView: View {
         ) { _ in
             Button(L10n.Common.thisOccurrence) { viewModel.resolveRecurring(.thisOccurrence) }
             Button(L10n.Common.thisAndFollowing) { viewModel.resolveRecurring(.thisAndFollowing) }
-            Button(L10n.Common.cancel, role: .cancel, action: viewModel.cancelDialog)
+            // Без role: .cancel — в iOS 26 такую кнопку диалог прячет.
+            Button(L10n.Common.cancel, action: viewModel.cancelDialog)
         } message: { dialog in
             if case .recurring(let message) = dialog { Text(message) }
         }
@@ -66,7 +67,8 @@ struct TaskEditorView: View {
             titleVisibility: .hidden
         ) {
             Button(L10n.Editor.deleteTask, role: .destructive, action: viewModel.confirmDelete)
-            Button(L10n.Common.cancel, role: .cancel, action: viewModel.cancelDialog)
+            // Без role: .cancel — в iOS 26 такую кнопку диалог прячет.
+            Button(L10n.Common.cancel, action: viewModel.cancelDialog)
         } message: {
             Text(L10n.Editor.deleteTaskMessage)
         }

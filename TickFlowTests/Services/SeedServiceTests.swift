@@ -81,10 +81,10 @@ struct SeedServiceTests {
         #expect(habitRepository.habits.count == counts.2)
     }
 
-    /// «Загрузить пример» поверх своих данных: категории и привычки не дублируются,
-    /// задачи добавляются в существующие категории и встают после своих.
+    /// «Загрузить пример» поверх своих данных: свои категории, привычки и задачи остаются,
+    /// категории и привычки примера добавляются после своих, задачи — в категории примера.
     @Test func sampleOverExistingData() {
-        let own = TaskList(name: "Своя", colorHex: "#000000", symbolName: "folder")
+        let own = TaskList(name: "Своя", colorHex: "#000000", symbolName: "folder", sortOrder: 0)
         repository.insert([own])
         let mine = TaskItem(title: "Моя задача", list: own, sortOrder: 40)
         repository.insert([mine])
@@ -93,12 +93,48 @@ struct SeedServiceTests {
 
         seedSample()
 
-        #expect(repository.lists.map(\.name) == ["Своя"])
-        #expect(habitRepository.habits.map(\.name) == ["Своя привычка"])
+        let lists = repository.lists
+        #expect(lists.map(\.name) == ["Своя", L10n.Sample.work, L10n.Sample.personal, L10n.Sample.health,
+                                       L10n.Sample.errands, L10n.Sample.learning])
+        #expect(Set(lists.map(\.sortOrder)).count == lists.count)
+        #expect(habitRepository.habits.count == 6)
+        #expect(habitRepository.habits.first?.name == "Своя привычка")
         let added = repository.tasks.filter { $0.id != mine.id }
         #expect(!added.isEmpty)
-        #expect(added.allSatisfy { $0.list?.id == own.id })
+        #expect(added.allSatisfy { $0.list != nil && $0.list?.id != own.id })
         #expect(added.allSatisfy { $0.sortOrder > 40 })
+        #expect(mine.list?.id == own.id)
+    }
+
+    /// Повторная загрузка ничего не дублирует.
+    @Test func sampleTwiceAddsNothing() {
+        let entries = SwiftDataTimeEntryRepository(context: container.mainContext)
+        SeedService.seedSample(tasks: repository, lists: repository, habits: habitRepository, timeEntries: entries)
+        let counts = (repository.lists.count, repository.tasks.count, habitRepository.habits.count, entries.entries.count)
+
+        SeedService.seedSample(tasks: repository, lists: repository, habits: habitRepository, timeEntries: entries)
+
+        #expect(repository.lists.count == counts.0)
+        #expect(repository.tasks.count == counts.1)
+        #expect(habitRepository.habits.count == counts.2)
+        #expect(entries.entries.count == counts.3)
+    }
+
+    /// Удалённая категория примера создаётся заново, её задачи возвращаются в неё, а не в чужую категорию.
+    @Test func sampleRestoresDeletedCategory() throws {
+        seedSample()
+        let learning = try #require(repository.lists.first { $0.name == L10n.Sample.learning })
+        repository.tasks.filter { $0.list?.id == learning.id }.forEach { repository.delete($0) }
+        repository.delete(learning)
+        let workCount = repository.tasks.filter { $0.list?.name == L10n.Sample.work }.count
+
+        seedSample()
+
+        #expect(repository.lists.filter { $0.name == L10n.Sample.learning }.count == 1)
+        let reading = try #require(repository.tasks.first { $0.title == L10n.Sample.readThinking })
+        #expect(reading.list?.name == L10n.Sample.learning)
+        #expect(repository.tasks.filter { $0.list?.name == L10n.Sample.work }.count == workCount)
+        #expect(repository.tasks.allSatisfy { $0.list != nil })
     }
 
     @Test func sampleIncludesTimeTracking() {

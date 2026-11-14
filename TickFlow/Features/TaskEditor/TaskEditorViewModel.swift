@@ -541,7 +541,7 @@ final class TaskEditorViewModel {
         var draft = draft
         // Флаг выполнения применяем отдельно: для повторяющейся задачи это создаст следующее вхождение.
         draft.isCompleted = task.isCompleted
-        let undoSchedule = ScheduleCommit.commit(draft, to: task, scope: scope, repository: taskRepository)
+        let undoSchedule = ScheduleCommit.commit(draft, to: task, scope: scope, repository: taskRepository, calendar: calendar)
 
         var next: TaskItem?
         if isCompleted != task.isCompleted {

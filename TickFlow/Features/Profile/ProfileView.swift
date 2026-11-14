@@ -157,6 +157,8 @@ struct ProfileView: View {
         .confirmationDialog(L10n.Profile.loadSampleQuestion, isPresented: $viewModel.isLoadSampleConfirmationPresented,
                             titleVisibility: .visible) {
             Button(L10n.Profile.load, action: viewModel.confirmLoadSample)
+            // Без role: .cancel — в iOS 26 такую кнопку диалог прячет.
+            Button(L10n.Common.cancel) {}
         } message: {
             Text(L10n.Profile.loadSampleMessage)
         }

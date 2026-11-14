@@ -17,14 +17,22 @@ enum ScheduleCommit {
         _ draft: TaskDraft,
         to task: TaskItem,
         scope: RecurringScope?,
-        repository: any TaskRepository
+        repository: any TaskRepository,
+        calendar: Calendar = .current
     ) -> () -> Void {
         let snapshot = TaskSnapshot(task)
         let original = snapshot.draft
         var draft = draft
 
         var continuation: TaskItem?
-        if scope == .thisOccurrence, let due = original.dueDate, let nextDue = original.repeatRule.nextDate(after: due) {
+        if scope == .thisOccurrence, let due = original.dueDate,
+           var nextDue = original.repeatRule.nextDate(after: due, calendar: calendar) {
+            // Вхождение перенесли на день, где серия и так стоит (обычно просроченное — на сегодня):
+            // серия начинается со следующей даты, чтобы в этот день не было двух одинаковых задач.
+            if let newDue = draft.dueDate, calendar.isDate(newDue, inSameDayAs: nextDue),
+               let later = original.repeatRule.nextDate(after: nextDue, calendar: calendar) {
+                nextDue = later
+            }
             var series = original
             series.dueDate = nextDue
             if let end = original.endDay {

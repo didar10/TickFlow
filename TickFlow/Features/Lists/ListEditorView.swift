@@ -111,6 +111,8 @@ struct ListEditorView: View {
         .confirmationDialog(L10n.Common.deleteNamed(viewModel.name), isPresented: $viewModel.isDeleteConfirmationPresented,
                             titleVisibility: .visible) {
             Button(L10n.Common.delete, role: .destructive, action: viewModel.confirmDelete)
+            // Без role: .cancel — в iOS 26 такую кнопку диалог прячет.
+            Button(L10n.Common.cancel) {}
         } message: {
             Text(viewModel.deleteMessage)
         }

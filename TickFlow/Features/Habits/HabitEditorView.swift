@@ -47,6 +47,8 @@ struct HabitEditorView: View {
             titleVisibility: .visible
         ) {
             Button(L10n.Common.delete, role: .destructive, action: viewModel.confirmDelete)
+            // Без role: .cancel — в iOS 26 такую кнопку диалог прячет.
+            Button(L10n.Common.cancel) {}
         } message: {
             Text(L10n.HabitEditor.deleteMessage)
         }
