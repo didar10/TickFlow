@@ -16,6 +16,10 @@ struct TaskDraft {
     var list: TaskList?
     var subtasks: [SubtaskDraft]
     var isCompleted = false
+    /// Трекинг времени задачи. `nil` — как у категории.
+    var trackingOverride: Bool? = nil
+    /// Своя оценка в минутах. `nil` — длительность слота, `0` — без оценки.
+    var estimateMinutes: Int? = nil
 }
 
 struct SubtaskDraft: Identifiable, Hashable {
@@ -28,6 +32,7 @@ struct TaskListDraft {
     var name: String
     var colorHex: String
     var symbolName: String
+    var tracksTimeByDefault = false
 }
 
 /// Полный снимок задачи. Нужен для «Отменить»: восстановить после удаления или правки.
@@ -37,6 +42,8 @@ struct TaskSnapshot {
     let completedAt: Date?
     let createdAt: Date
     let sortOrder: Int
+    /// Записи времени задачи: при восстановлении удалённой задачи связь с ними возвращается.
+    let timeEntryIDs: [UUID]
 
     @MainActor
     init(_ task: TaskItem) {
@@ -44,6 +51,7 @@ struct TaskSnapshot {
         completedAt = task.completedAt
         createdAt = task.createdAt
         sortOrder = task.sortOrder
+        timeEntryIDs = task.timeEntries.map(\.id)
         draft = TaskDraft(
             title: task.title,
             notes: task.notes,
@@ -58,7 +66,9 @@ struct TaskSnapshot {
             subtasks: task.sortedSubtasks.map {
                 SubtaskDraft(id: $0.id, title: $0.title, isCompleted: $0.isCompleted)
             },
-            isCompleted: task.isCompleted
+            isCompleted: task.isCompleted,
+            trackingOverride: task.trackingOverride,
+            estimateMinutes: task.estimateMinutes
         )
     }
 }

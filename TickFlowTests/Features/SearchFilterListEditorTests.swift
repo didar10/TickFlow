@@ -157,6 +157,18 @@ struct ListEditorViewModelTests {
         #expect(editor.isFinished)
     }
 
+    @Test func editingCategoryKeepsTrackingDefault() throws {
+        let list = fixture.list("Работа")
+        list.tracksTimeByDefault = true
+        let repository = FakeTaskRepository(lists: [list])
+        let editor = ListEditorViewModel(list: list, lists: repository, toasts: toasts)
+        #expect(editor.tracksTimeByDefault)
+
+        editor.name = "Офис"
+        editor.save()
+        #expect(try #require(repository.savedListDrafts.first).draft.tracksTimeByDefault)
+    }
+
     @Test func editsExistingCategory() {
         let list = fixture.list("Работа", color: "#2A9792")
         let repository = FakeTaskRepository(lists: [list])

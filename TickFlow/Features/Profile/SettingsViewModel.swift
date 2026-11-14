@@ -2,24 +2,10 @@ import Foundation
 import Observation
 import UIKit
 
-/// Что открыть в редакторе категории.
-struct ListEditorRequest: Identifiable {
-    let id = UUID()
-    let list: TaskList?
-}
-
 /// Настройки: оформление, календарь, уведомления, категории, привычки и данные.
 @MainActor
 @Observable
 final class SettingsViewModel {
-    struct CategoryRow: Identifiable {
-        let id: UUID
-        let name: String
-        let colorHex: String
-        let count: String
-    }
-
-    var listEditorRequest: ListEditorRequest?
     var isLoadSampleConfirmationPresented = false
     private(set) var notificationsDenied = false
 
@@ -27,6 +13,7 @@ final class SettingsViewModel {
     @ObservationIgnored private let tasks: any TaskRepository
     @ObservationIgnored private let lists: any TaskListRepository
     @ObservationIgnored private let habits: any HabitRepository
+    @ObservationIgnored private let timeEntries: any TimeEntryRepository
     @ObservationIgnored private let toasts: ToastCenter
     @ObservationIgnored private let navigator: AppNavigator
     @ObservationIgnored private let loadSampleData: () -> Void
@@ -38,6 +25,7 @@ final class SettingsViewModel {
         tasks: any TaskRepository,
         lists: any TaskListRepository,
         habits: any HabitRepository,
+        timeEntries: any TimeEntryRepository,
         toasts: ToastCenter,
         navigator: AppNavigator,
         loadSampleData: @escaping () -> Void,
@@ -50,6 +38,7 @@ final class SettingsViewModel {
         self.tasks = tasks
         self.lists = lists
         self.habits = habits
+        self.timeEntries = timeEntries
         self.toasts = toasts
         self.navigator = navigator
         self.loadSampleData = loadSampleData
@@ -146,20 +135,17 @@ final class SettingsViewModel {
 
     // MARK: - Категории
 
-    var categories: [CategoryRow] {
-        lists.lists.map { list in
-            let count = list.tasks.count
-            return CategoryRow(id: list.id, name: list.name, colorHex: list.colorHex, count: L10n.Plural.tasks(count))
-        }
-    }
+    /// Сколько категорий — значение строки «Категории».
+    var categoryCount: String { String(lists.lists.count) }
 
-    func editCategory(_ id: UUID) {
-        listEditorRequest = ListEditorRequest(list: lists.lists.first { $0.id == id })
-    }
+    /// «25/5», «50/10» или «40/7 мин».
+    var focusTimerSummary: String { FocusSettingsViewModel.summary(current.focus) }
+    var isFocusSettingsPresented = false
 
-    func addCategory() {
-        listEditorRequest = ListEditorRequest(list: nil)
-    }
+    var wantsFocusHistory: Bool { navigator.wantsFocusHistory }
+
+    /// Запрос с экрана фокуса обработан: история открыта.
+    func focusHistoryOpened() { navigator.wantsFocusHistory = false }
 
     // MARK: - Привычки
 
@@ -177,8 +163,11 @@ final class SettingsViewModel {
 
     var exportFile: ExportFile {
         let day = clock.now.formatted(.iso8601.year().month().day())
-        return ExportFile(fileName: "TickFlow-\(day).json") { [tasks, lists, habits, clock] in
-            try ExportService.makeJSON(tasks: tasks.tasks, lists: lists.lists, habits: habits.habits, exportedAt: clock.now)
+        return ExportFile(fileName: "TickFlow-\(day).json") { [tasks, lists, habits, timeEntries, clock] in
+            try ExportService.makeJSON(
+                tasks: tasks.tasks, lists: lists.lists, habits: habits.habits,
+                timeEntries: timeEntries.entries, exportedAt: clock.now
+            )
         }
     }
 

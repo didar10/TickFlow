@@ -23,11 +23,19 @@ final class TaskItem {
     var sortOrder: Int = 0
     var createdAt: Date = Date.now
     var updatedAt: Date = Date.now
+    /// Трекинг времени для этой задачи. `nil` — как у категории.
+    var trackingOverride: Bool?
+    /// Оценка в минутах. `nil` — берётся длительность слота, `0` — оценки нет.
+    var estimateMinutes: Int?
 
     var list: TaskList?
 
     @Relationship(deleteRule: .cascade, inverse: \Subtask.parent)
     var subtasks: [Subtask] = []
+
+    /// История остаётся после удаления задачи — записи просто теряют связь.
+    @Relationship(deleteRule: .nullify, inverse: \TimeEntry.task)
+    var timeEntries: [TimeEntry] = []
 
     init(
         title: String,
@@ -113,6 +121,25 @@ final class TaskItem {
         guard let dueDate, hasTime, !isCompleted, let offset = reminder.offset else { return nil }
         let fire = dueDate.addingTimeInterval(offset)
         return fire > now ? fire : nil
+    }
+
+    // MARK: - Трекинг времени
+
+    /// Показывать ли трекинг: своя настройка задачи важнее настройки категории.
+    var tracksTime: Bool {
+        trackingOverride ?? list?.tracksTimeByDefault ?? false
+    }
+
+    /// Оценка в минутах. Без своей оценки — длительность запланированного слота на один день.
+    var effectiveEstimate: Int? {
+        if let estimateMinutes { return estimateMinutes > 0 ? estimateMinutes : nil }
+        guard dueDate != nil, hasTime, endDay == nil else { return nil }
+        return durationMinutes
+    }
+
+    /// Потрачено минут: без перерывов и отброшенных сессий.
+    var trackedMinutes: Int {
+        timeEntries.filter(\.countsAsWork).reduce(0) { $0 + $1.durationMinutes }
     }
 
     var completedSubtaskCount: Int {

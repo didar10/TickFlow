@@ -105,6 +105,7 @@ final class SwiftDataRepository: TaskRepository, TaskListRepository {
         item.completedAt = snapshot.completedAt
         item.createdAt = snapshot.createdAt
         item.sortOrder = snapshot.sortOrder
+        relinkTimeEntries(snapshot.timeEntryIDs, to: item)
         commit()
         updateReminder(for: item)
     }
@@ -142,6 +143,18 @@ final class SwiftDataRepository: TaskRepository, TaskListRepository {
         updateReminder(for: task)
     }
 
+    func setTracking(_ task: TaskItem, _ override: Bool?) {
+        task.trackingOverride = override
+        task.updatedAt = clock.now
+        commit()
+    }
+
+    func setEstimate(_ task: TaskItem, minutes: Int?) {
+        task.estimateMinutes = minutes.map { max(0, $0) }
+        task.updatedAt = clock.now
+        commit()
+    }
+
     func rescheduleReminders(enabled: Bool) {
         remindersEnabled = enabled
         tasks.forEach(updateReminder)
@@ -154,22 +167,27 @@ final class SwiftDataRepository: TaskRepository, TaskListRepository {
         commit()
     }
 
-    func save(_ draft: TaskListDraft, to list: TaskList?) {
+    @discardableResult
+    func save(_ draft: TaskListDraft, to list: TaskList?) -> TaskList {
+        let item: TaskList
         if let list {
-            list.name = draft.name
-            list.colorHex = draft.colorHex
-            list.symbolName = draft.symbolName
+            item = list
+            item.name = draft.name
+            item.colorHex = draft.colorHex
+            item.symbolName = draft.symbolName
+            item.tracksTimeByDefault = draft.tracksTimeByDefault
         } else {
-            context.insert(
-                TaskList(
-                    name: draft.name,
-                    colorHex: draft.colorHex,
-                    symbolName: draft.symbolName,
-                    sortOrder: (lists.map(\.sortOrder).max() ?? 0) + 1
-                )
+            item = TaskList(
+                name: draft.name,
+                colorHex: draft.colorHex,
+                symbolName: draft.symbolName,
+                sortOrder: (lists.map(\.sortOrder).max() ?? 0) + 1,
+                tracksTimeByDefault: draft.tracksTimeByDefault
             )
+            context.insert(item)
         }
         commit()
+        return item
     }
 
     func delete(_ list: TaskList) {
@@ -195,6 +213,8 @@ final class SwiftDataRepository: TaskRepository, TaskListRepository {
         item.reminder = draft.reminder
         item.repeatRule = draft.repeatRule
         item.list = draft.list
+        item.trackingOverride = draft.trackingOverride
+        item.estimateMinutes = draft.estimateMinutes.map { max(0, $0) }
         if item.isCompleted != draft.isCompleted {
             item.setCompleted(draft.isCompleted, at: clock.now)
         }
@@ -214,6 +234,15 @@ final class SwiftDataRepository: TaskRepository, TaskListRepository {
         draft.isCompleted = false
         draft.subtasks = draft.subtasks.map { SubtaskDraft(id: UUID(), title: $0.title, isCompleted: false) }
         return draft
+    }
+
+    /// Удалённая задача теряет связь с записями (`nullify`). Восстановление возвращает её.
+    private func relinkTimeEntries(_ ids: [UUID], to item: TaskItem) {
+        guard !ids.isEmpty else { return }
+        let entries = (try? context.fetch(FetchDescriptor<TimeEntry>(predicate: #Predicate { ids.contains($0.id) }))) ?? []
+        for entry in entries where entry.task == nil {
+            entry.task = item
+        }
     }
 
     private func syncSubtasks(_ drafts: [SubtaskDraft], on item: TaskItem) {

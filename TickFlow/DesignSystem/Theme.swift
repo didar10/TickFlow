@@ -76,6 +76,12 @@ enum AppColors {
     static let warningSoft = Color(light: "#FBEFDE", dark: "#3A2C18")
     static let warningText = Color(light: "#8D550C", dark: "#F0B35E")
     static let success = Color(light: "#24713F", dark: "#7AD69A")
+    /// Перерыв в фокусе: кольцо, кнопка и живая плашка.
+    static let breakTint = Color(light: "#399E62", dark: "#4CB878")
+    static let breakSoft = Color(light: "#E4F3EA", dark: "#173222")
+    /// Кольцо мини-плеера на тёмном фоне.
+    static let focusRingOnDark = Color(hex: "#A9A8FF")
+    static let breakRingOnDark = Color(hex: "#7BD88F")
     static let doneDot = Color(light: "#D1D1D6", dark: "#48484A")
 
     static let toastBackground = Color(light: "#1C1C1E", dark: "#3A3A3C")

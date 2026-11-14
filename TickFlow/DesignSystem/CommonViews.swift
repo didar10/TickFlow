@@ -105,6 +105,8 @@ struct StepperPill: View {
             Text(value)
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColors.label)
+                .lineLimit(1)
+                .fixedSize()
                 .frame(minWidth: minWidth)
             stepButton("plus", action: increment)
         }

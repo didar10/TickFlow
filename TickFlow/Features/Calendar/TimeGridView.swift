@@ -206,8 +206,16 @@ struct TimeGridView: View {
                 if let ghost = viewModel.ghost {
                     ghostView(ghost)
                 }
+                let narrowed = viewModel.sessionDayIndexes
                 ForEach(viewModel.cards) { card in
-                    cardView(card)
+                    cardView(card, inset: narrowed.contains(card.dayIndex) ? geometry.sessionLaneWidth : 0)
+                }
+                ForEach(viewModel.sessions) { session in
+                    sessionView(session)
+                }
+                if let live = viewModel.liveDayIndex {
+                    LiveSessionBlock(geometry: geometry, columnWidth: columnWidth, dayIndex: live,
+                                     minuteOf: viewModel.minute(of:), onTap: viewModel.openLiveSession)
                 }
                 if let line = viewModel.nowLine(at: now) {
                     nowLineView(line)
@@ -287,8 +295,8 @@ struct TimeGridView: View {
             .offset(x: geometry.gutterWidth)
     }
 
-    private func frame(dayIndex: Int, start: Int, end: Int, lane: Int = 0, laneCount: Int = 1) -> CGRect {
-        let laneWidth = columnWidth / CGFloat(max(1, laneCount))
+    private func frame(dayIndex: Int, start: Int, end: Int, lane: Int = 0, laneCount: Int = 1, inset: CGFloat = 0) -> CGRect {
+        let laneWidth = max(0, columnWidth - inset) / CGFloat(max(1, laneCount))
         return CGRect(
             x: geometry.gutterWidth + CGFloat(dayIndex) * columnWidth + CGFloat(lane) * laneWidth + 1,
             y: geometry.y(forMinute: start) + 1,
@@ -306,9 +314,25 @@ struct TimeGridView: View {
             .allowsHitTesting(false)
     }
 
-    private func cardView(_ card: CalendarItems.Card) -> some View {
+    private func sessionView(_ session: CalendarItems.Session) -> some View {
+        let rect = SessionBlockFrame.rect(geometry: geometry, columnWidth: columnWidth, dayIndex: session.dayIndex,
+                                          start: session.startMinute, end: session.endMinute)
+        return SessionBlockView(
+            title: session.title, detail: session.detail, colorHex: session.colorHex,
+            isInterrupted: session.isInterrupted, isWide: geometry.showsSessionLabels, height: rect.height
+        )
+        .frame(width: rect.width, height: rect.height)
+        .contentShape(Rectangle())
+        .onTapGesture { viewModel.openSession(session.id) }
+        .offset(x: rect.minX, y: rect.minY)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(session.title + ", " + session.detail)
+        .accessibilityAddTraits(.isButton)
+    }
+
+    private func cardView(_ card: CalendarItems.Card, inset: CGFloat = 0) -> some View {
         let rect = frame(dayIndex: card.dayIndex, start: card.startMinute, end: card.endMinute,
-                         lane: card.lane, laneCount: card.laneCount)
+                         lane: card.lane, laneCount: card.laneCount, inset: inset)
         let style = CategoryStyle(hex: card.colorHex)
         let narrow = geometry.isNarrow
         let showsTime = rect.height >= (narrow ? 46 : 34)

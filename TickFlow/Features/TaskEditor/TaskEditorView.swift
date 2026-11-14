@@ -4,6 +4,7 @@ import SwiftUI
 /// или полноэкранный редактор. Одна ViewModel переходит из листа в полный экран.
 struct TaskEditorView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppDependencies.self) private var dependencies
     @State private var viewModel: TaskEditorViewModel
     @FocusState private var focus: TaskEditorViewModel.Field?
     private let container: TaskEditorViewModel.Mode
@@ -34,6 +35,9 @@ struct TaskEditorView: View {
         .sheet(item: $viewModel.picker) { picker in
             DateTimePickerView(viewModel: picker, onCancel: viewModel.closePicker)
         }
+        .sheet(isPresented: $viewModel.isNewCategoryPresented) {
+            ListEditorView(viewModel: dependencies.makeListEditorViewModel(list: nil, onSaved: viewModel.categoryCreated))
+        }
         .alert(
             L10n.Common.timeConflict,
             isPresented: dialogBinding(.conflict(message: "")),
@@ -52,7 +56,8 @@ struct TaskEditorView: View {
         ) { _ in
             Button(L10n.Common.thisOccurrence) { viewModel.resolveRecurring(.thisOccurrence) }
             Button(L10n.Common.thisAndFollowing) { viewModel.resolveRecurring(.thisAndFollowing) }
-            Button(L10n.Common.cancel, role: .cancel, action: viewModel.cancelDialog)
+            // Без role: .cancel — в iOS 26 такую кнопку диалог прячет.
+            Button(L10n.Common.cancel, action: viewModel.cancelDialog)
         } message: { dialog in
             if case .recurring(let message) = dialog { Text(message) }
         }
@@ -62,7 +67,8 @@ struct TaskEditorView: View {
             titleVisibility: .hidden
         ) {
             Button(L10n.Editor.deleteTask, role: .destructive, action: viewModel.confirmDelete)
-            Button(L10n.Common.cancel, role: .cancel, action: viewModel.cancelDialog)
+            // Без role: .cancel — в iOS 26 такую кнопку диалог прячет.
+            Button(L10n.Common.cancel, action: viewModel.cancelDialog)
         } message: {
             Text(L10n.Editor.deleteTaskMessage)
         }
@@ -131,6 +137,7 @@ struct TaskEditorView: View {
                     toolbarIconLabel("tag", color: viewModel.isCategoryExplicit ? Color(hex: viewModel.categoryColorHex) : AppColors.textTertiary)
                 }
                 Menu {
+                    trackingToggle
                     Button(L10n.Editor.openFullScreen, systemImage: "arrow.up.left.and.arrow.down.right", action: viewModel.openFullScreen)
                 } label: {
                     toolbarIconLabel("ellipsis", color: AppColors.textTertiary)
@@ -209,6 +216,15 @@ struct TaskEditorView: View {
                         .lineLimit(3...)
                         .focused($focus, equals: .notes)
 
+                    if viewModel.showsTimeBlock {
+                        TaskTimeSection(
+                            viewModel: viewModel,
+                            onStop: viewModel.stopLive,
+                            onAddManual: viewModel.addManualEntry,
+                            onOpenEntry: viewModel.openEntry
+                        )
+                    }
+
                     subtasksSection
                 }
                 .padding(.horizontal, 20)
@@ -256,6 +272,7 @@ struct TaskEditorView: View {
             priorityMenu(iconColor: viewModel.hasPriority ? viewModel.priority.color : AppColors.label, filled: true)
 
             Menu {
+                trackingToggle
                 if viewModel.isEditing {
                     Button(
                         viewModel.isCompleted ? L10n.Common.markUndone : L10n.Common.markDone,
@@ -382,6 +399,17 @@ struct TaskEditorView: View {
 
     // MARK: - Меню
 
+    /// «Учёт времени» с галочкой, как переключатель.
+    private var trackingToggle: some View {
+        Button(action: viewModel.toggleTracking) {
+            if viewModel.tracksTime {
+                SwiftUI.Label(L10n.Focus.timeTracking, systemImage: "checkmark")
+            } else {
+                SwiftUI.Label(L10n.Focus.timeTracking, systemImage: "timer")
+            }
+        }
+    }
+
     private func categoryMenu<Label: View>(@ViewBuilder label: () -> Label) -> some View {
         Menu {
             ForEach(viewModel.categories) { option in
@@ -395,6 +423,8 @@ struct TaskEditorView: View {
                     }
                 }
             }
+            Divider()
+            Button(L10n.Lists.newCategoryEllipsis, systemImage: "plus", action: viewModel.requestNewCategory)
         } label: {
             label()
         }
@@ -490,7 +520,10 @@ private struct TaskEditorPresenter: ViewModifier {
                 }
             }
             .fullScreenCover(isPresented: $isFullPresented, onDismiss: finish) {
-                if let editor { TaskEditorView(viewModel: editor, container: .full) }
+                if let editor {
+                    TaskEditorView(viewModel: editor, container: .full)
+                        .modifier(EditorFocusPresenter(viewModel: editor))
+                }
             }
     }
 
@@ -506,6 +539,34 @@ private struct TaskEditorPresenter: ViewModifier {
     private func finish() {
         editor = nil
         request = nil
+    }
+}
+
+/// Листы учёта времени и экран фокуса поверх полноэкранного редактора.
+private struct EditorFocusPresenter: ViewModifier {
+    @Environment(AppDependencies.self) private var dependencies
+    @Environment(FocusEngine.self) private var focus
+    @Bindable var viewModel: TaskEditorViewModel
+
+    func body(content: Content) -> some View {
+        content
+            .sheet(item: $viewModel.entryEditor) { TimeEntryEditorView(viewModel: $0) }
+            .sheet(item: $viewModel.sessionDetail) { SessionDetailView(viewModel: $0) }
+            .fullScreenCover(isPresented: Binding(
+                get: { focus.screenHost == .editor },
+                set: { if !$0 { focus.closeScreen() } }
+            )) {
+                FocusView(viewModel: dependencies.makeFocusScreenViewModel(host: .editor))
+            }
+            .modifier(OptionalStopFlow(flow: viewModel.stopFlow))
+    }
+}
+
+private struct OptionalStopFlow: ViewModifier {
+    let flow: FocusStopFlow?
+
+    func body(content: Content) -> some View {
+        if let flow { content.focusStopFlow(flow) } else { content }
     }
 }
 

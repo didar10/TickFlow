@@ -116,6 +116,14 @@ final class FakeTaskRepository: TaskRepository, TaskListRepository {
         movedToTodayIDs.append(task.id)
     }
 
+    func setTracking(_ task: TaskItem, _ override: Bool?) {
+        task.trackingOverride = override
+    }
+
+    func setEstimate(_ task: TaskItem, minutes: Int?) {
+        task.estimateMinutes = minutes.map { max(0, $0) }
+    }
+
     func rescheduleReminders(enabled: Bool) {
         rescheduleCalls.append(enabled)
     }
@@ -124,15 +132,20 @@ final class FakeTaskRepository: TaskRepository, TaskListRepository {
         self.lists += lists
     }
 
-    func save(_ draft: TaskListDraft, to list: TaskList?) {
+    @discardableResult
+    func save(_ draft: TaskListDraft, to list: TaskList?) -> TaskList {
         savedListDrafts.append((draft, list))
         if let list {
             list.name = draft.name
             list.colorHex = draft.colorHex
             list.symbolName = draft.symbolName
-        } else {
-            lists.append(TaskList(name: draft.name, colorHex: draft.colorHex, symbolName: draft.symbolName))
+            list.tracksTimeByDefault = draft.tracksTimeByDefault
+            return list
         }
+        let item = TaskList(name: draft.name, colorHex: draft.colorHex, symbolName: draft.symbolName,
+                            tracksTimeByDefault: draft.tracksTimeByDefault)
+        lists.append(item)
+        return item
     }
 
     func delete(_ list: TaskList) {
@@ -204,5 +217,40 @@ final class FakeHabitRepository: HabitRepository {
         let log = HabitLog(day: calendar.startOfDay(for: day))
         habit.logs.append(log)
         return log
+    }
+}
+
+@MainActor
+final class FakeTimeEntryRepository: TimeEntryRepository {
+    private(set) var entries: [TimeEntry] = []
+    private(set) var deletedIDs: [UUID] = []
+
+    init(_ entries: [TimeEntry] = []) {
+        self.entries = entries
+    }
+
+    @discardableResult
+    func add(_ draft: TimeEntryDraft) -> TimeEntry? {
+        guard draft.isValid else { return nil }
+        let entry = TimeEntry(start: draft.start, end: draft.end, kind: draft.kind, status: draft.status, task: draft.task)
+        entries.append(entry)
+        return entry
+    }
+
+    func insert(_ drafts: [TimeEntryDraft]) {
+        drafts.forEach { add($0) }
+    }
+
+    func update(_ entry: TimeEntry, with draft: TimeEntryDraft) {
+        guard draft.isValid else { return }
+        entry.task = draft.task
+        entry.start = draft.start
+        entry.end = draft.end
+        entry.status = draft.status
+    }
+
+    func delete(_ entry: TimeEntry) {
+        deletedIDs.append(entry.id)
+        entries.removeAll { $0.id == entry.id }
     }
 }

@@ -34,6 +34,7 @@ struct AppSettings: Codable, Equatable {
     var workdayStartHour = 9
     var workdayEndHour = 18
     var hasCompletedOnboarding = false
+    var focus = FocusSettings()
 
     init() {}
 
@@ -55,5 +56,6 @@ struct AppSettings: Codable, Equatable {
         workdayStartHour = try c.decodeIfPresent(Int.self, forKey: .workdayStartHour) ?? defaults.workdayStartHour
         workdayEndHour = try c.decodeIfPresent(Int.self, forKey: .workdayEndHour) ?? defaults.workdayEndHour
         hasCompletedOnboarding = try c.decodeIfPresent(Bool.self, forKey: .hasCompletedOnboarding) ?? defaults.hasCompletedOnboarding
+        focus = try c.decodeIfPresent(FocusSettings.self, forKey: .focus) ?? defaults.focus
     }
 }

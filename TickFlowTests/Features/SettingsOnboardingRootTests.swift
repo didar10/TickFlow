@@ -23,7 +23,7 @@ struct SettingsViewModelTests {
 
     private func screen() -> SettingsViewModel {
         SettingsViewModel(
-            settings: settings, tasks: tasks, lists: tasks, habits: habits, toasts: toasts, navigator: navigator,
+            settings: settings, tasks: tasks, lists: tasks, habits: habits, timeEntries: FakeTimeEntryRepository(), toasts: toasts, navigator: navigator,
             loadSampleData: { [sampleLoads] in sampleLoads.value += 1 }, clock: clock, reminders: reminders
         )
     }
@@ -122,23 +122,9 @@ struct SettingsViewModelTests {
         #expect(screen.taskRemindersEnabled)
     }
 
-    @Test func categories() throws {
-        let work = fixture.list("Работа", color: "#111111")
-        fixture.task("A", list: work)
-        fixture.task("B", list: work)
-        let home = fixture.list("Дом")
-        tasks.insert([work, home])
-        let screen = screen()
-
-        #expect(screen.categories.map(\.name) == ["Работа", "Дом"])
-        #expect(screen.categories.map(\.count) == ["2 задачи", "0 задач"])
-        #expect(screen.categories.first?.colorHex == "#111111")
-
-        screen.editCategory(work.id)
-        #expect(screen.listEditorRequest?.list === work)
-        screen.addCategory()
-        let request = try #require(screen.listEditorRequest)
-        #expect(request.list == nil)
+    @Test func categoryCount() {
+        tasks.insert([fixture.list("Работа"), fixture.list("Дом")])
+        #expect(screen().categoryCount == "2")
     }
 
     @Test func sampleDataAfterConfirmation() {
@@ -349,6 +335,23 @@ struct OnboardingViewModelTests {
         let onboarding = onboarding()
         OnboardingViewModel.goals.filter { $0.habit.kind == .amount }.forEach(onboarding.toggleGoal)
         onboarding.loadSample()
+        #expect(habits.savedDrafts.isEmpty)
+    }
+
+    /// Выбранная цель не должна мешать примеру добавить свои привычки.
+    @Test func sampleHabitsLoadWhenGoalSelected() throws {
+        let onboarding = OnboardingViewModel(
+            settings: settings, habits: habits, tasks: tasks, navigator: navigator,
+            loadSampleData: { [tasks, habits] in SeedService.seedSample(tasks: tasks, lists: tasks, habits: habits) },
+            clock: FixedClock("2026-11-08 09:00"), reminders: reminders
+        )
+        let water = try #require(OnboardingViewModel.goals.first { $0.habit.kind == .amount })
+        onboarding.toggleGoal(water)
+        onboarding.loadSample()
+
+        let names = habits.habits.map(\.name)
+        #expect(names.count == 5)
+        #expect(names.filter { $0 == "Пить воду" }.count == 1)
         #expect(habits.savedDrafts.isEmpty)
     }
 

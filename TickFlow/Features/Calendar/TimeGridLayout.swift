@@ -13,6 +13,17 @@ struct TimelineGeometry: Equatable {
     }
 
     var isNarrow: Bool { dayCount == 7 }
+
+    /// Ширина полосы учтённого времени у правого края колонки: подписи есть только в «Дне».
+    var sessionLaneWidth: CGFloat {
+        switch dayCount {
+        case 1: 78
+        case 3: 12
+        default: 6
+        }
+    }
+
+    var showsSessionLabels: Bool { dayCount == 1 }
     var contentHeight: CGFloat { hourHeight * 24 }
 
     func y(forMinute minute: Int) -> CGFloat {

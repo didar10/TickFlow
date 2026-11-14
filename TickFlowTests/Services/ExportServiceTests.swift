@@ -19,7 +19,7 @@ struct ExportServiceTests {
 
     @Test func emptyDatabaseGivesValidArchive() throws {
         let json = try export()
-        #expect(Set(json.keys) == ["exportedAt", "categories", "tasks", "habits"])
+        #expect(Set(json.keys) == ["exportedAt", "categories", "tasks", "habits", "timeEntries"])
         #expect((json["categories"] as? [Any])?.isEmpty == true)
         #expect((json["tasks"] as? [Any])?.isEmpty == true)
         #expect((json["habits"] as? [Any])?.isEmpty == true)
@@ -117,5 +117,36 @@ struct ExportServiceTests {
         }
         let shared = try await file.exported(as: .json)
         #expect(shared == (try file.makeData()))
+    }
+
+    @Test func exportsTimeTrackingFields() throws {
+        let list = fixture.list("Работа")
+        list.tracksTimeByDefault = true
+        let task = fixture.task("Отчёт", list: list)
+        task.trackingOverride = false
+        task.estimateMinutes = 150
+        let late = TimeEntry(start: date("2026-11-08 10:00"), end: date("2026-11-08 10:25"), kind: .timer,
+                             status: .interrupted, task: task)
+        let early = TimeEntry(start: date("2026-11-08 08:00"), end: date("2026-11-08 08:05"), kind: .breakTime)
+        fixture.context.insert(late)
+        fixture.context.insert(early)
+
+        let data = try ExportService.makeJSON(tasks: [task], lists: [list], habits: [], timeEntries: [late, early],
+                                              exportedAt: exportedAt)
+        let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+
+        let category = try #require((json["categories"] as? [[String: Any]])?.first)
+        #expect(category["tracksTimeByDefault"] as? Bool == true)
+        let record = try #require((json["tasks"] as? [[String: Any]])?.first)
+        #expect(record["trackingOverride"] as? Bool == false)
+        #expect(record["estimateMinutes"] as? Int == 150)
+
+        let entries = try #require(json["timeEntries"] as? [[String: Any]])
+        #expect(entries.count == 2)
+        #expect(entries[0]["kind"] as? Int == TimeEntryKind.breakTime.rawValue)
+        #expect(entries[0]["taskID"] == nil)
+        #expect(entries[1]["taskID"] as? String == task.id.uuidString)
+        #expect(entries[1]["status"] as? Int == TimeEntryStatus.interrupted.rawValue)
+        #expect(entries[1]["start"] as? String == "2026-11-08T07:00:00Z")
     }
 }

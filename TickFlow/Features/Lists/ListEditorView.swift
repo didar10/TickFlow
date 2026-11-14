@@ -80,6 +80,16 @@ struct ListEditorView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(AppColors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
+                    VStack(alignment: .leading, spacing: 6) {
+                        Toggle(L10n.Lists.trackByDefault, isOn: $viewModel.tracksTimeByDefault)
+                            .font(AppFont.body)
+                            .foregroundStyle(AppColors.label)
+                            .tint(AppColors.accent)
+                            .settingsRow()
+                            .background(AppColors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        SettingsFootnote(viewModel.trackingFootnote)
+                    }
+
                     if viewModel.canDelete {
                         Button(L10n.Lists.deleteCategory, role: .destructive, action: viewModel.requestDelete)
                             .font(.system(size: 17))
@@ -101,6 +111,8 @@ struct ListEditorView: View {
         .confirmationDialog(L10n.Common.deleteNamed(viewModel.name), isPresented: $viewModel.isDeleteConfirmationPresented,
                             titleVisibility: .visible) {
             Button(L10n.Common.delete, role: .destructive, action: viewModel.confirmDelete)
+            // Без role: .cancel — в iOS 26 такую кнопку диалог прячет.
+            Button(L10n.Common.cancel) {}
         } message: {
             Text(viewModel.deleteMessage)
         }

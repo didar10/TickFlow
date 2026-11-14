@@ -19,6 +19,8 @@ struct SegmentedPicker<Value: Hashable>: View {
                         .font(.system(size: 13, weight: isSelected ? .semibold : .medium))
                         .foregroundStyle(AppColors.label)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .padding(.horizontal, 2)
                         .frame(maxWidth: .infinity)
                         .frame(height: 28)
                         .background {

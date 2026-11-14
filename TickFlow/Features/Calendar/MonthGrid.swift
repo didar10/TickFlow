@@ -27,6 +27,13 @@ struct MonthGrid: View {
                 legend(AppColors.accent, L10n.Common.planned)
                 legend(AppColors.nowLine, L10n.Common.overdue)
                 legend(AppColors.doneDot, L10n.Common.completed)
+                HStack(spacing: 5) {
+                    DiagonalStripes(spacing: 3.5, lineWidth: 1.5)
+                        .fill(AppColors.accent)
+                        .frame(width: 10, height: 6)
+                        .clipShape(RoundedRectangle(cornerRadius: 2))
+                    Text(L10n.Calendar.trackedLegend).font(.system(size: 11)).foregroundStyle(AppColors.textSecondary)
+                }
             }
             .padding(.top, 4)
         }
@@ -76,9 +83,15 @@ private struct MonthCellView: View {
                 }
                 .frame(height: 6)
                 .opacity(cell.isInMonth ? 1 : 0.4)
+                Text(cell.tracked)
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(AppColors.accent)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .frame(height: 11)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 50)
+            .frame(height: 60)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
